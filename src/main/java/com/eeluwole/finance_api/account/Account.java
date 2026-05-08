@@ -3,6 +3,7 @@ package com.eeluwole.finance_api.account;
 import com.eeluwole.finance_api.client.Client;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
@@ -16,6 +17,7 @@ public class Account {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Exclude
     private Long id;
 
     @Column(unique = true)
@@ -36,7 +38,7 @@ public class Account {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public enum AccountType {
-        SAVINGS, CHEQUING, INVESTMENT
+        SAVINGS, CHEWING, INVESTMENT
     }
 
     public enum AccountStatus {
