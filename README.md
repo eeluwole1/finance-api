@@ -1,6 +1,6 @@
 # Finance API
 
-> A backend REST API simulating the core systems of an insurance and wealth-management company — accounts, policies, claims, payments, and rewards, all scoped to the client who owns them.
+> A backend REST API simulating the core systems of **Priscilla Trust Insurance**, a fictional insurance and wealth-management company — accounts, policies, claims, payments, and rewards, all scoped to the client who owns them.
 
 ---
 
@@ -32,7 +32,7 @@
 
 ## Overview
 
-`finance-api` is a Spring Boot REST API that simulates the core backend systems of a Canadian insurance and wealth management company. It handles:
+`finance-api` is a Spring Boot REST API that simulates the core backend systems of **Priscilla Trust Insurance**, a fictional insurance and wealth management company. It handles:
 
 - **Authentication** — Secure JWT-based register and login
 - **Clients** — Register and manage policyholders
@@ -51,7 +51,7 @@
 
 ## User Story
 
-> **As a policyholder, I want to securely manage my own accounts, insurance policies, payments, and claims online — and be confident that no one else can see or touch my financial data — so that I can handle my finances and coverage without needing to call an agent for every request.**
+> **As a Priscilla Trust Insurance policyholder, I want to securely manage my own accounts, insurance policies, payments, and claims online — and be confident that no one else can see or touch my financial data — so that I can handle my finances and coverage without needing to call an agent for every request.**
 
 **The 30-second interview version:** This is a backend API for an insurance/wealth-management platform. A client registers, gets a JWT, and from there owns everything hanging off their profile — savings/chequing/investment accounts, life/health/auto/home insurance policies, the beneficiaries on those policies, premium payments, claims, policy loans, and reward points.
 
@@ -345,7 +345,7 @@ POST /api/v1/auth/register
 
 ### Policy
 
-> An insurance contract between the company and a client. A client can hold multiple policies. The policy defines coverage type, premium amount, and term dates.
+> An insurance contract between Priscilla Trust Insurance and a client. A client can hold multiple policies. The policy defines coverage type, premium amount, and term dates.
 
 | Method | Endpoint                            | Description              |
 |--------|-------------------------------------|--------------------------|
@@ -604,4 +604,4 @@ A personal project built to practice backend architecture, JWT authentication, a
 
 ---
 
-*A fictional insurance, wealth management, and financial services platform, built for learning and portfolio purposes.*
+*Priscilla Trust Insurance — a fictional insurance, wealth management, and financial services platform, built for learning and portfolio purposes.*
