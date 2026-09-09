@@ -1,13 +1,14 @@
 package com.eeluwole.finance_api.rewards;
 
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.client.Client;
+import com.eeluwole.finance_api.client.ClientAccessGuard;
 import com.eeluwole.finance_api.client.ClientRepository;
 import com.eeluwole.finance_api.rewards.dto.CreateRewardRequest;
 import com.eeluwole.finance_api.rewards.dto.RewardResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -28,12 +29,12 @@ class RewardServiceTest {
     @Mock
     private ClientRepository clientRepository;
 
-    @InjectMocks
     private RewardService rewardService;
 
     private Client client;
     private Reward reward;
     private CreateRewardRequest request;
+    private User currentUser;
 
     @BeforeEach
     void setUp() {
@@ -59,13 +60,19 @@ class RewardServiceTest {
         request.setPoints(500);
         request.setReason("Policy renewal bonus");
         request.setType(Reward.RewardType.EARNED);
+
+        currentUser = new User();
+        currentUser.setId(99L);
+        currentUser.setRole(User.Role.ADMIN);
+
+        rewardService = new RewardService(rewardRepository, new ClientAccessGuard(clientRepository));
     }
 
     @Test
     void getAllRewards_returnsListOfRewards() {
         when(rewardRepository.findAll()).thenReturn(List.of(reward));
 
-        List<RewardResponse> result = rewardService.getAllRewards();
+        List<RewardResponse> result = rewardService.getAllRewards(currentUser);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getPoints()).isEqualTo(500);
@@ -75,7 +82,7 @@ class RewardServiceTest {
     void getRewardById_existingId_returnsReward() {
         when(rewardRepository.findById(1L)).thenReturn(Optional.of(reward));
 
-        RewardResponse result = rewardService.getRewardById(1L);
+        RewardResponse result = rewardService.getRewardById(1L, currentUser);
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getPoints()).isEqualTo(500);
@@ -85,16 +92,17 @@ class RewardServiceTest {
     void getRewardById_nonExistingId_throwsException() {
         when(rewardRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> rewardService.getRewardById(99L))
+        assertThatThrownBy(() -> rewardService.getRewardById(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Reward not found with id: 99");
     }
 
     @Test
     void getTotalPointsByClient_activeEarnedRewards_returnsSum() {
+        when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
         when(rewardRepository.findByClientId(1L)).thenReturn(List.of(reward));
 
-        Integer total = rewardService.getTotalPointsByClient(1L);
+        Integer total = rewardService.getTotalPointsByClient(1L, currentUser);
 
         assertThat(total).isEqualTo(500);
     }
@@ -102,9 +110,10 @@ class RewardServiceTest {
     @Test
     void getTotalPointsByClient_redeemedRewards_excludedFromSum() {
         reward.setType(Reward.RewardType.REDEEMED);
+        when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
         when(rewardRepository.findByClientId(1L)).thenReturn(List.of(reward));
 
-        Integer total = rewardService.getTotalPointsByClient(1L);
+        Integer total = rewardService.getTotalPointsByClient(1L, currentUser);
 
         assertThat(total).isEqualTo(0);
     }
@@ -114,7 +123,7 @@ class RewardServiceTest {
         when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
         when(rewardRepository.save(any(Reward.class))).thenReturn(reward);
 
-        RewardResponse result = rewardService.createReward(request);
+        RewardResponse result = rewardService.createReward(request, currentUser);
 
         assertThat(result.getPoints()).isEqualTo(500);
         verify(rewardRepository, times(1)).save(any(Reward.class));
@@ -124,7 +133,7 @@ class RewardServiceTest {
     void createReward_clientNotFound_throwsException() {
         when(clientRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> rewardService.createReward(request))
+        assertThatThrownBy(() -> rewardService.createReward(request, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Client not found with id: 1");
 
@@ -136,7 +145,7 @@ class RewardServiceTest {
         when(rewardRepository.findById(1L)).thenReturn(Optional.of(reward));
         when(rewardRepository.save(any(Reward.class))).thenReturn(reward);
 
-        RewardResponse result = rewardService.updateRewardStatus(1L, Reward.RewardStatus.USED);
+        RewardResponse result = rewardService.updateRewardStatus(1L, Reward.RewardStatus.USED, currentUser);
 
         assertThat(result).isNotNull();
         verify(rewardRepository, times(1)).save(any(Reward.class));
@@ -144,18 +153,18 @@ class RewardServiceTest {
 
     @Test
     void deleteReward_existingId_deletesReward() {
-        when(rewardRepository.existsById(1L)).thenReturn(true);
+        when(rewardRepository.findById(1L)).thenReturn(Optional.of(reward));
 
-        rewardService.deleteReward(1L);
+        rewardService.deleteReward(1L, currentUser);
 
         verify(rewardRepository, times(1)).deleteById(1L);
     }
 
     @Test
     void deleteReward_nonExistingId_throwsException() {
-        when(rewardRepository.existsById(99L)).thenReturn(false);
+        when(rewardRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> rewardService.deleteReward(99L))
+        assertThatThrownBy(() -> rewardService.deleteReward(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Reward not found with id: 99");
 

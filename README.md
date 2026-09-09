@@ -128,7 +128,7 @@ cd finance-api
 DB_URL=jdbc:postgresql://localhost:5434/financedb
 DB_USERNAME=your_db_username
 DB_PASSWORD=your_db_password
-JWT_SECRET=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+JWT_SECRET=replace-with-a-random-base64-secret-at-least-32-bytes
 JWT_EXPIRATION=86400000
 ```
 

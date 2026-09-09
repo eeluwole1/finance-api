@@ -2,7 +2,9 @@ package com.eeluwole.finance_api.account;
 
 import com.eeluwole.finance_api.account.dto.CreateAccountRequest;
 import com.eeluwole.finance_api.account.dto.AccountResponse;
+import com.eeluwole.finance_api.auth.User;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -18,62 +20,69 @@ public class AccountController {
 
     // GET /api/v1/accounts
     @GetMapping
-    public ResponseEntity<List<AccountResponse>> getAllAccounts() {
-        return ResponseEntity.ok(accountService.getAllAccounts());
+    public ResponseEntity<List<AccountResponse>> getAllAccounts(@AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(accountService.getAllAccounts(currentUser));
     }
 
     // GET /api/v1/accounts/{id}
     @GetMapping("/{id}")
-    public ResponseEntity<AccountResponse> getAccountById(@PathVariable Long id) {
-        return ResponseEntity.ok(accountService.getAccountById(id));
+    public ResponseEntity<AccountResponse> getAccountById(@PathVariable Long id,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(accountService.getAccountById(id, currentUser));
     }
 
     // GET /api/v1/accounts/client/{clientId}
     @GetMapping("/client/{clientId}")
-    public ResponseEntity<List<AccountResponse>> getAccountsByClient(@PathVariable Long clientId) {
-        return ResponseEntity.ok(accountService.getAccountsByClient(clientId));
+    public ResponseEntity<List<AccountResponse>> getAccountsByClient(@PathVariable Long clientId,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(accountService.getAccountsByClient(clientId, currentUser));
     }
 
     // GET /api/v1/accounts/status/{status}
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<AccountResponse>> getAccountsByStatus(@PathVariable Account.AccountStatus status) {
-        return ResponseEntity.ok(accountService.getAccountsByStatus(status));
+    public ResponseEntity<List<AccountResponse>> getAccountsByStatus(@PathVariable Account.AccountStatus status,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(accountService.getAccountsByStatus(status, currentUser));
     }
 
     // POST /api/v1/accounts
     @PostMapping
-    public ResponseEntity<AccountResponse> createAccount(@RequestBody CreateAccountRequest request) {
-        return ResponseEntity.ok(accountService.createAccount(request));
+    public ResponseEntity<AccountResponse> createAccount(@RequestBody CreateAccountRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(accountService.createAccount(request, currentUser));
     }
 
     // PATCH /api/v1/accounts/{id}/deposit
     @PatchMapping("/{id}/deposit")
     public ResponseEntity<AccountResponse> deposit(
             @PathVariable Long id,
-            @RequestParam Double amount) {
-        return ResponseEntity.ok(accountService.deposit(id, amount));
+            @RequestParam Double amount,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(accountService.deposit(id, amount, currentUser));
     }
 
     // PATCH /api/v1/accounts/{id}/withdraw
     @PatchMapping("/{id}/withdraw")
     public ResponseEntity<AccountResponse> withdraw(
             @PathVariable Long id,
-            @RequestParam Double amount) {
-        return ResponseEntity.ok(accountService.withdraw(id, amount));
+            @RequestParam Double amount,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(accountService.withdraw(id, amount, currentUser));
     }
 
     // PATCH /api/v1/accounts/{id}/status
     @PatchMapping("/{id}/status")
     public ResponseEntity<AccountResponse> updateAccountStatus(
             @PathVariable Long id,
-            @RequestParam Account.AccountStatus status) {
-        return ResponseEntity.ok(accountService.updateAccountStatus(id, status));
+            @RequestParam Account.AccountStatus status,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(accountService.updateAccountStatus(id, status, currentUser));
     }
 
     // DELETE /api/v1/accounts/{id}
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAccount(@PathVariable Long id) {
-        accountService.deleteAccount(id);
+    public ResponseEntity<Void> deleteAccount(@PathVariable Long id, @AuthenticationPrincipal User currentUser) {
+        accountService.deleteAccount(id, currentUser);
         return ResponseEntity.noContent().build();
     }
 }

@@ -2,12 +2,13 @@ package com.eeluwole.finance_api.account;
 
 import com.eeluwole.finance_api.account.dto.AccountResponse;
 import com.eeluwole.finance_api.account.dto.CreateAccountRequest;
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.client.Client;
+import com.eeluwole.finance_api.client.ClientAccessGuard;
 import com.eeluwole.finance_api.client.ClientRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -28,12 +29,12 @@ class AccountServiceTest {
     @Mock
     private ClientRepository clientRepository;
 
-    @InjectMocks
     private AccountService accountService;
 
     private Client client;
     private Account account;
     private CreateAccountRequest request;
+    private User currentUser;
 
     @BeforeEach
     void setUp() {
@@ -59,13 +60,19 @@ class AccountServiceTest {
         request.setAccountNumber("ACC-001");
         request.setType(Account.AccountType.SAVINGS);
         request.setBalance(500.0);
+
+        currentUser = new User();
+        currentUser.setId(99L);
+        currentUser.setRole(User.Role.ADMIN);
+
+        accountService = new AccountService(accountRepository, new ClientAccessGuard(clientRepository));
     }
 
     @Test
     void getAllAccounts_returnsListOfAccounts() {
         when(accountRepository.findAll()).thenReturn(List.of(account));
 
-        List<AccountResponse> result = accountService.getAllAccounts();
+        List<AccountResponse> result = accountService.getAllAccounts(currentUser);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getAccountNumber()).isEqualTo("ACC-001");
@@ -75,7 +82,7 @@ class AccountServiceTest {
     void getAccountById_existingId_returnsAccount() {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        AccountResponse result = accountService.getAccountById(1L);
+        AccountResponse result = accountService.getAccountById(1L, currentUser);
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getAccountNumber()).isEqualTo("ACC-001");
@@ -85,7 +92,7 @@ class AccountServiceTest {
     void getAccountById_nonExistingId_throwsException() {
         when(accountRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> accountService.getAccountById(99L))
+        assertThatThrownBy(() -> accountService.getAccountById(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Account not found with id: 99");
     }
@@ -96,7 +103,7 @@ class AccountServiceTest {
         when(accountRepository.existsByAccountNumber("ACC-001")).thenReturn(false);
         when(accountRepository.save(any(Account.class))).thenReturn(account);
 
-        AccountResponse result = accountService.createAccount(request);
+        AccountResponse result = accountService.createAccount(request, currentUser);
 
         assertThat(result.getAccountNumber()).isEqualTo("ACC-001");
         verify(accountRepository, times(1)).save(any(Account.class));
@@ -106,7 +113,7 @@ class AccountServiceTest {
     void createAccount_clientNotFound_throwsException() {
         when(clientRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> accountService.createAccount(request))
+        assertThatThrownBy(() -> accountService.createAccount(request, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Client not found with id: 1");
 
@@ -118,7 +125,7 @@ class AccountServiceTest {
         when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
         when(accountRepository.existsByAccountNumber("ACC-001")).thenReturn(true);
 
-        assertThatThrownBy(() -> accountService.createAccount(request))
+        assertThatThrownBy(() -> accountService.createAccount(request, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Account number already exists: ACC-001");
 
@@ -130,7 +137,7 @@ class AccountServiceTest {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(accountRepository.save(any(Account.class))).thenReturn(account);
 
-        AccountResponse result = accountService.deposit(1L, 100.0);
+        AccountResponse result = accountService.deposit(1L, 100.0, currentUser);
 
         assertThat(result).isNotNull();
         verify(accountRepository, times(1)).save(any(Account.class));
@@ -138,7 +145,7 @@ class AccountServiceTest {
 
     @Test
     void deposit_zeroAmount_throwsException() {
-        assertThatThrownBy(() -> accountService.deposit(1L, 0.0))
+        assertThatThrownBy(() -> accountService.deposit(1L, 0.0, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Deposit amount must be greater than zero");
     }
@@ -148,7 +155,7 @@ class AccountServiceTest {
         account.setStatus(Account.AccountStatus.FROZEN);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        assertThatThrownBy(() -> accountService.deposit(1L, 100.0))
+        assertThatThrownBy(() -> accountService.deposit(1L, 100.0, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Cannot deposit to a frozen account");
     }
@@ -158,7 +165,7 @@ class AccountServiceTest {
         account.setStatus(Account.AccountStatus.CLOSED);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        assertThatThrownBy(() -> accountService.deposit(1L, 100.0))
+        assertThatThrownBy(() -> accountService.deposit(1L, 100.0, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Cannot deposit to a closed account");
     }
@@ -168,7 +175,7 @@ class AccountServiceTest {
         account.setBalance(950000.0);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        assertThatThrownBy(() -> accountService.deposit(1L, 100000.0))
+        assertThatThrownBy(() -> accountService.deposit(1L, 100000.0, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Deposit would exceed maximum balance limit of 1,000,000");
     }
@@ -178,7 +185,7 @@ class AccountServiceTest {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(accountRepository.save(any(Account.class))).thenReturn(account);
 
-        AccountResponse result = accountService.withdraw(1L, 100.0);
+        AccountResponse result = accountService.withdraw(1L, 100.0, currentUser);
 
         assertThat(result).isNotNull();
         verify(accountRepository, times(1)).save(any(Account.class));
@@ -186,7 +193,7 @@ class AccountServiceTest {
 
     @Test
     void withdraw_zeroAmount_throwsException() {
-        assertThatThrownBy(() -> accountService.withdraw(1L, 0.0))
+        assertThatThrownBy(() -> accountService.withdraw(1L, 0.0, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("withdrawal amount must be greater than zero");
     }
@@ -196,7 +203,7 @@ class AccountServiceTest {
         account.setStatus(Account.AccountStatus.FROZEN);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        assertThatThrownBy(() -> accountService.withdraw(1L, 100.0))
+        assertThatThrownBy(() -> accountService.withdraw(1L, 100.0, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Cannot withdraw from a frozen account");
     }
@@ -206,7 +213,7 @@ class AccountServiceTest {
         account.setBalance(50.0);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        assertThatThrownBy(() -> accountService.withdraw(1L, 100.0))
+        assertThatThrownBy(() -> accountService.withdraw(1L, 100.0, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Insufficient balance");
     }
@@ -216,7 +223,7 @@ class AccountServiceTest {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(accountRepository.save(any(Account.class))).thenReturn(account);
 
-        AccountResponse result = accountService.updateAccountStatus(1L, Account.AccountStatus.FROZEN);
+        AccountResponse result = accountService.updateAccountStatus(1L, Account.AccountStatus.FROZEN, currentUser);
 
         assertThat(result).isNotNull();
         verify(accountRepository, times(1)).save(any(Account.class));
@@ -224,18 +231,18 @@ class AccountServiceTest {
 
     @Test
     void deleteAccount_existingId_deletesAccount() {
-        when(accountRepository.existsById(1L)).thenReturn(true);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        accountService.deleteAccount(1L);
+        accountService.deleteAccount(1L, currentUser);
 
         verify(accountRepository, times(1)).deleteById(1L);
     }
 
     @Test
     void deleteAccount_nonExistingId_throwsException() {
-        when(accountRepository.existsById(99L)).thenReturn(false);
+        when(accountRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> accountService.deleteAccount(99L))
+        assertThatThrownBy(() -> accountService.deleteAccount(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Account not found with id: 99");
 

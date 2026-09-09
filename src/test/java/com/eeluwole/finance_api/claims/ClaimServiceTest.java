@@ -1,15 +1,16 @@
 package com.eeluwole.finance_api.claims;
 
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.claims.dto.ClaimResponse;
 import com.eeluwole.finance_api.claims.dto.CreateClaimRequest;
 import com.eeluwole.finance_api.client.Client;
+import com.eeluwole.finance_api.client.ClientAccessGuard;
 import com.eeluwole.finance_api.client.ClientRepository;
 import com.eeluwole.finance_api.policy.Policy;
 import com.eeluwole.finance_api.policy.PolicyRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -34,13 +35,13 @@ class ClaimServiceTest {
     @Mock
     private PolicyRepository policyRepository;
 
-    @InjectMocks
     private ClaimService claimService;
 
     private Client client;
     private Policy policy;
     private Claim claim;
     private CreateClaimRequest request;
+    private User currentUser;
 
     @BeforeEach
     void setUp() {
@@ -79,13 +80,19 @@ class ClaimServiceTest {
         request.setType(Claim.ClaimType.LIFE);
         request.setAmount(50000.0);
         request.setDescription("Life insurance claim");
+
+        currentUser = new User();
+        currentUser.setId(99L);
+        currentUser.setRole(User.Role.ADMIN);
+
+        claimService = new ClaimService(claimRepository, policyRepository, new ClientAccessGuard(clientRepository));
     }
 
     @Test
     void getAllClaims_returnsListOfClaims() {
         when(claimRepository.findAll()).thenReturn(List.of(claim));
 
-        List<ClaimResponse> result = claimService.getAllClaims();
+        List<ClaimResponse> result = claimService.getAllClaims(currentUser);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getAmount()).isEqualTo(50000.0);
@@ -95,7 +102,7 @@ class ClaimServiceTest {
     void getClaimById_existingId_returnsClaim() {
         when(claimRepository.findById(1L)).thenReturn(Optional.of(claim));
 
-        ClaimResponse result = claimService.getClaimById(1L);
+        ClaimResponse result = claimService.getClaimById(1L, currentUser);
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getAmount()).isEqualTo(50000.0);
@@ -105,7 +112,7 @@ class ClaimServiceTest {
     void getClaimById_nonExistingId_throwsException() {
         when(claimRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> claimService.getClaimById(99L))
+        assertThatThrownBy(() -> claimService.getClaimById(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Claim not found with id: 99");
     }
@@ -116,7 +123,7 @@ class ClaimServiceTest {
         when(policyRepository.findById(1L)).thenReturn(Optional.of(policy));
         when(claimRepository.save(any(Claim.class))).thenReturn(claim);
 
-        ClaimResponse result = claimService.createClaim(request);
+        ClaimResponse result = claimService.createClaim(request, currentUser);
 
         assertThat(result.getAmount()).isEqualTo(50000.0);
         verify(claimRepository, times(1)).save(any(Claim.class));
@@ -126,7 +133,7 @@ class ClaimServiceTest {
     void createClaim_clientNotFound_throwsException() {
         when(clientRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> claimService.createClaim(request))
+        assertThatThrownBy(() -> claimService.createClaim(request, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Client not found with id: 1");
 
@@ -138,7 +145,7 @@ class ClaimServiceTest {
         when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
         when(policyRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> claimService.createClaim(request))
+        assertThatThrownBy(() -> claimService.createClaim(request, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Policy not found with id: 1");
 
@@ -150,7 +157,7 @@ class ClaimServiceTest {
         when(claimRepository.findById(1L)).thenReturn(Optional.of(claim));
         when(claimRepository.save(any(Claim.class))).thenReturn(claim);
 
-        ClaimResponse result = claimService.updateClaimStatus(1L, Claim.ClaimStatus.APPROVED);
+        ClaimResponse result = claimService.updateClaimStatus(1L, Claim.ClaimStatus.APPROVED, currentUser);
 
         assertThat(result).isNotNull();
         verify(claimRepository, times(1)).save(any(Claim.class));
@@ -158,18 +165,18 @@ class ClaimServiceTest {
 
     @Test
     void deleteClaim_existingId_deletesClaim() {
-        when(claimRepository.existsById(1L)).thenReturn(true);
+        when(claimRepository.findById(1L)).thenReturn(Optional.of(claim));
 
-        claimService.deleteClaim(1L);
+        claimService.deleteClaim(1L, currentUser);
 
         verify(claimRepository, times(1)).deleteById(1L);
     }
 
     @Test
     void deleteClaim_nonExistingId_throwsException() {
-        when(claimRepository.existsById(99L)).thenReturn(false);
+        when(claimRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> claimService.deleteClaim(99L))
+        assertThatThrownBy(() -> claimService.deleteClaim(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Claim not found with id: 99");
 

@@ -1,11 +1,13 @@
 package com.eeluwole.finance_api.advanced;
 
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.client.Client;
-import com.eeluwole.finance_api.client.ClientRepository;
+import com.eeluwole.finance_api.client.ClientAccessGuard;
 import com.eeluwole.finance_api.advanced.dto.CreateAdvancedRequest;
 import com.eeluwole.finance_api.advanced.dto.AdvancedResponse;
 import com.eeluwole.finance_api.policy.Policy;
 import com.eeluwole.finance_api.policy.PolicyRepository;
+import com.eeluwole.finance_api.common.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -14,41 +16,46 @@ import java.util.List;
 public class AdvancedService {
 
     private final AdvancedRepository advancedRepository;
-    private final ClientRepository clientRepository;
     private final PolicyRepository policyRepository;
+    private final ClientAccessGuard clientAccessGuard;
 
     public AdvancedService(AdvancedRepository advancedRepository,
-            ClientRepository clientRepository,
-            PolicyRepository policyRepository) {
+            PolicyRepository policyRepository,
+            ClientAccessGuard clientAccessGuard) {
         this.advancedRepository = advancedRepository;
-        this.clientRepository = clientRepository;
         this.policyRepository = policyRepository;
+        this.clientAccessGuard = clientAccessGuard;
     }
 
-    public List<AdvancedResponse> getAllLoans() {
-        return advancedRepository.findAll().stream().map(this::toResponse).toList();
+    public List<AdvancedResponse> getAllLoans(User currentUser) {
+        return advancedRepository.findAll().stream()
+                .filter(l -> clientAccessGuard.owns(l.getClient(), currentUser))
+                .map(this::toResponse).toList();
     }
 
-    public AdvancedResponse getLoanById(Long id) {
+    public AdvancedResponse getLoanById(Long id, User currentUser) {
         Advanced loan = advancedRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Loan not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Loan not found with id: " + id));
+        clientAccessGuard.assertOwnership(loan.getClient(), currentUser);
         return toResponse(loan);
     }
 
-    public List<AdvancedResponse> getLoansByClient(Long clientId) {
+    public List<AdvancedResponse> getLoansByClient(Long clientId, User currentUser) {
+        clientAccessGuard.requireOwnedClient(clientId, currentUser);
         return advancedRepository.findByClientId(clientId).stream().map(this::toResponse).toList();
     }
 
-    public List<AdvancedResponse> getLoansByStatus(Advanced.LoanStatus status) {
-        return advancedRepository.findByStatus(status).stream().map(this::toResponse).toList();
+    public List<AdvancedResponse> getLoansByStatus(Advanced.LoanStatus status, User currentUser) {
+        return advancedRepository.findByStatus(status).stream()
+                .filter(l -> clientAccessGuard.owns(l.getClient(), currentUser))
+                .map(this::toResponse).toList();
     }
 
-    public AdvancedResponse createLoan(CreateAdvancedRequest request) {
-        Client client = clientRepository.findById(request.getClientId())
-                .orElseThrow(() -> new RuntimeException("Client not found with id: " + request.getClientId()));
+    public AdvancedResponse createLoan(CreateAdvancedRequest request, User currentUser) {
+        Client client = clientAccessGuard.requireOwnedClient(request.getClientId(), currentUser);
 
         Policy policy = policyRepository.findById(request.getPolicyId())
-                .orElseThrow(() -> new RuntimeException("Policy not found with id: " + request.getPolicyId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + request.getPolicyId()));
 
         Advanced loan = new Advanced();
         loan.setClient(client);
@@ -60,17 +67,18 @@ public class AdvancedService {
         return toResponse(advancedRepository.save(loan));
     }
 
-    public AdvancedResponse updateLoanStatus(Long id, Advanced.LoanStatus status) {
+    public AdvancedResponse updateLoanStatus(Long id, Advanced.LoanStatus status, User currentUser) {
         Advanced loan = advancedRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Loan not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Loan not found with id: " + id));
+        clientAccessGuard.assertOwnership(loan.getClient(), currentUser);
         loan.setStatus(status);
         return toResponse(advancedRepository.save(loan));
     }
 
-    public void deleteLoan(Long id) {
-        if (!advancedRepository.existsById(id)) {
-            throw new RuntimeException("Loan not found with id: " + id);
-        }
+    public void deleteLoan(Long id, User currentUser) {
+        Advanced loan = advancedRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Loan not found with id: " + id));
+        clientAccessGuard.assertOwnership(loan.getClient(), currentUser);
         advancedRepository.deleteById(id);
     }
 

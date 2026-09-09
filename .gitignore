@@ -1,9 +1,5 @@
 HELP.md
-.gradle
-build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+target/
 .env
 
 ### STS ###
@@ -36,3 +32,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Postman (local workspace cache, not project content) ###
+.postman/
+postman/

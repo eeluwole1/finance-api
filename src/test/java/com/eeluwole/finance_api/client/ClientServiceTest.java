@@ -1,11 +1,11 @@
 package com.eeluwole.finance_api.client;
 
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.client.dto.ClientResponse;
 import com.eeluwole.finance_api.client.dto.CreateClientRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -23,11 +23,11 @@ class ClientServiceTest {
     @Mock
     private ClientRepository clientRepository;
 
-    @InjectMocks
     private ClientService clientService;
 
     private Client client;
     private CreateClientRequest request;
+    private User currentUser;
 
     @BeforeEach
     void setUp() {
@@ -46,13 +46,19 @@ class ClientServiceTest {
         request.setEmail("john@email.com");
         request.setPhone("647-555-1234");
         request.setAddress("123 Main St, Toronto");
+
+        currentUser = new User();
+        currentUser.setId(99L);
+        currentUser.setRole(User.Role.ADMIN);
+
+        clientService = new ClientService(clientRepository, new ClientAccessGuard(clientRepository));
     }
 
     @Test
     void getAllClients_returnsListOfClients() {
         when(clientRepository.findAll()).thenReturn(List.of(client));
 
-        List<ClientResponse> result = clientService.getAllClients();
+        List<ClientResponse> result = clientService.getAllClients(currentUser);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getEmail()).isEqualTo("john@email.com");
@@ -62,7 +68,7 @@ class ClientServiceTest {
     void getClientById_existingId_returnsClient() {
         when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
 
-        ClientResponse result = clientService.getClientById(1L);
+        ClientResponse result = clientService.getClientById(1L, currentUser);
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getFirstName()).isEqualTo("John");
@@ -72,7 +78,7 @@ class ClientServiceTest {
     void getClientById_nonExistingId_throwsException() {
         when(clientRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> clientService.getClientById(99L))
+        assertThatThrownBy(() -> clientService.getClientById(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Client not found with id: 99");
     }
@@ -82,7 +88,7 @@ class ClientServiceTest {
         when(clientRepository.existsByEmail(request.getEmail())).thenReturn(false);
         when(clientRepository.save(any(Client.class))).thenReturn(client);
 
-        ClientResponse result = clientService.createClient(request);
+        ClientResponse result = clientService.createClient(request, currentUser);
 
         assertThat(result.getEmail()).isEqualTo("john@email.com");
         verify(clientRepository, times(1)).save(any(Client.class));
@@ -92,7 +98,7 @@ class ClientServiceTest {
     void createClient_duplicateEmail_throwsException() {
         when(clientRepository.existsByEmail(request.getEmail())).thenReturn(true);
 
-        assertThatThrownBy(() -> clientService.createClient(request))
+        assertThatThrownBy(() -> clientService.createClient(request, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Client with this email already exists");
 
@@ -104,7 +110,7 @@ class ClientServiceTest {
         when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
         when(clientRepository.save(any(Client.class))).thenReturn(client);
 
-        ClientResponse result = clientService.updateClient(1L, request);
+        ClientResponse result = clientService.updateClient(1L, request, currentUser);
 
         assertThat(result.getFirstName()).isEqualTo("John");
         verify(clientRepository, times(1)).save(any(Client.class));
@@ -115,7 +121,7 @@ class ClientServiceTest {
         when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
         when(clientRepository.save(any(Client.class))).thenReturn(client);
 
-        ClientResponse result = clientService.updateClientStatus(1L, Client.ClientStatus.INACTIVE);
+        ClientResponse result = clientService.updateClientStatus(1L, Client.ClientStatus.INACTIVE, currentUser);
 
         assertThat(result).isNotNull();
         verify(clientRepository, times(1)).save(any(Client.class));
@@ -123,18 +129,18 @@ class ClientServiceTest {
 
     @Test
     void deleteClient_existingId_deletesClient() {
-        when(clientRepository.existsById(1L)).thenReturn(true);
+        when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
 
-        clientService.deleteClient(1L);
+        clientService.deleteClient(1L, currentUser);
 
         verify(clientRepository, times(1)).deleteById(1L);
     }
 
     @Test
     void deleteClient_nonExistingId_throwsException() {
-        when(clientRepository.existsById(99L)).thenReturn(false);
+        when(clientRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> clientService.deleteClient(99L))
+        assertThatThrownBy(() -> clientService.deleteClient(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Client not found with id: 99");
 

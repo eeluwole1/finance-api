@@ -31,6 +31,11 @@ public class Client {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // The auth User who registered/owns this client record. Null means
+    // the client was seeded by the system and is only reachable by ADMIN
+    // users until claimed.
+    private Long ownerUserId;
+
     public enum ClientStatus {
         ACTIVE, INACTIVE, SUSPENDED
     }

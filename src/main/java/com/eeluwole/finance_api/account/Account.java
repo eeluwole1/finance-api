@@ -38,7 +38,7 @@ public class Account {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public enum AccountType {
-        SAVINGS, CHEWING, INVESTMENT
+        SAVINGS, CHEQUING, INVESTMENT
     }
 
     public enum AccountStatus {

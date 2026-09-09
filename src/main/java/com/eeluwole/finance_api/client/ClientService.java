@@ -1,7 +1,9 @@
 package com.eeluwole.finance_api.client;
 
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.client.dto.CreateClientRequest;
 import com.eeluwole.finance_api.client.dto.ClientResponse;
+import com.eeluwole.finance_api.common.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -10,36 +12,41 @@ import java.util.List;
 public class ClientService {
 
     private final ClientRepository clientRepository;
+    private final ClientAccessGuard clientAccessGuard;
 
-    public ClientService(ClientRepository clientRepository) {
+    public ClientService(ClientRepository clientRepository, ClientAccessGuard clientAccessGuard) {
         this.clientRepository = clientRepository;
+        this.clientAccessGuard = clientAccessGuard;
     }
 
-    // Get all clients
-    public List<ClientResponse> getAllClients() {
+    // Get all clients (own only, unless ADMIN)
+    public List<ClientResponse> getAllClients(User currentUser) {
         return clientRepository.findAll()
                 .stream()
+                .filter(c -> clientAccessGuard.owns(c, currentUser))
                 .map(this::toResponse)
                 .toList();
     }
 
     // Get client by ID
-    public ClientResponse getClientById(Long id) {
+    public ClientResponse getClientById(Long id, User currentUser) {
         Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found with id: " + id));
+        clientAccessGuard.assertOwnership(client, currentUser);
         return toResponse(client);
     }
 
-    // Get clients by status
-    public List<ClientResponse> getClientsByStatus(Client.ClientStatus status) {
+    // Get clients by status (own only, unless ADMIN)
+    public List<ClientResponse> getClientsByStatus(Client.ClientStatus status, User currentUser) {
         return clientRepository.findByStatus(status)
                 .stream()
+                .filter(c -> clientAccessGuard.owns(c, currentUser))
                 .map(this::toResponse)
                 .toList();
     }
 
-    // Create new client
-    public ClientResponse createClient(CreateClientRequest request) {
+    // Create new client — the caller becomes its owner
+    public ClientResponse createClient(CreateClientRequest request, User currentUser) {
         if (clientRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Client with this email already exists");
         }
@@ -49,13 +56,15 @@ public class ClientService {
         client.setEmail(request.getEmail());
         client.setPhone(request.getPhone());
         client.setAddress(request.getAddress());
+        client.setOwnerUserId(currentUser.getId());
         return toResponse(clientRepository.save(client));
     }
 
     // Update client
-    public ClientResponse updateClient(Long id, CreateClientRequest request) {
+    public ClientResponse updateClient(Long id, CreateClientRequest request, User currentUser) {
         Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found with id: " + id));
+        clientAccessGuard.assertOwnership(client, currentUser);
         client.setFirstName(request.getFirstName());
         client.setLastName(request.getLastName());
         client.setEmail(request.getEmail());
@@ -65,18 +74,19 @@ public class ClientService {
     }
 
     // Update client status
-    public ClientResponse updateClientStatus(Long id, Client.ClientStatus status) {
+    public ClientResponse updateClientStatus(Long id, Client.ClientStatus status, User currentUser) {
         Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found with id: " + id));
+        clientAccessGuard.assertOwnership(client, currentUser);
         client.setStatus(status);
         return toResponse(clientRepository.save(client));
     }
 
     // Delete client
-    public void deleteClient(Long id) {
-        if (!clientRepository.existsById(id)) {
-            throw new RuntimeException("Client not found with id: " + id);
-        }
+    public void deleteClient(Long id, User currentUser) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found with id: " + id));
+        clientAccessGuard.assertOwnership(client, currentUser);
         clientRepository.deleteById(id);
     }
 

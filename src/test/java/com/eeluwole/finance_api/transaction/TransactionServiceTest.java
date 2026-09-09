@@ -1,13 +1,14 @@
 package com.eeluwole.finance_api.transaction;
 
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.client.Client;
+import com.eeluwole.finance_api.client.ClientAccessGuard;
 import com.eeluwole.finance_api.client.ClientRepository;
 import com.eeluwole.finance_api.transaction.dto.CreateTransactionRequest;
 import com.eeluwole.finance_api.transaction.dto.TransactionResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -28,13 +29,13 @@ class TransactionServiceTest {
     @Mock
     private ClientRepository clientRepository;
 
-    @InjectMocks
     private TransactionService transactionService;
 
     private Client client;
     private Client toClient;
     private Transaction transaction;
     private CreateTransactionRequest request;
+    private User currentUser;
 
     @BeforeEach
     void setUp() {
@@ -69,13 +70,19 @@ class TransactionServiceTest {
         request.setType(Transaction.TransactionType.DEPOSIT);
         request.setAmount(1000.0);
         request.setDescription("Monthly deposit");
+
+        currentUser = new User();
+        currentUser.setId(99L);
+        currentUser.setRole(User.Role.ADMIN);
+
+        transactionService = new TransactionService(transactionRepository, clientRepository, new ClientAccessGuard(clientRepository));
     }
 
     @Test
     void getAllTransactions_returnsListOfTransactions() {
         when(transactionRepository.findAll()).thenReturn(List.of(transaction));
 
-        List<TransactionResponse> result = transactionService.getAllTransactions();
+        List<TransactionResponse> result = transactionService.getAllTransactions(currentUser);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getAmount()).isEqualTo(1000.0);
@@ -85,7 +92,7 @@ class TransactionServiceTest {
     void getTransactionById_existingId_returnsTransaction() {
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
 
-        TransactionResponse result = transactionService.getTransactionById(1L);
+        TransactionResponse result = transactionService.getTransactionById(1L, currentUser);
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getAmount()).isEqualTo(1000.0);
@@ -95,7 +102,7 @@ class TransactionServiceTest {
     void getTransactionById_nonExistingId_throwsException() {
         when(transactionRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> transactionService.getTransactionById(99L))
+        assertThatThrownBy(() -> transactionService.getTransactionById(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Transaction not found with id: 99");
     }
@@ -105,7 +112,7 @@ class TransactionServiceTest {
         when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
         when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
 
-        TransactionResponse result = transactionService.createTransaction(request);
+        TransactionResponse result = transactionService.createTransaction(request, currentUser);
 
         assertThat(result.getAmount()).isEqualTo(1000.0);
         verify(transactionRepository, times(1)).save(any(Transaction.class));
@@ -115,7 +122,7 @@ class TransactionServiceTest {
     void createTransaction_clientNotFound_throwsException() {
         when(clientRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> transactionService.createTransaction(request))
+        assertThatThrownBy(() -> transactionService.createTransaction(request, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Client not found with id: 1");
 
@@ -144,7 +151,7 @@ class TransactionServiceTest {
         when(clientRepository.findById(2L)).thenReturn(Optional.of(toClient));
         when(transactionRepository.save(any(Transaction.class))).thenReturn(transferTransaction);
 
-        TransactionResponse result = transactionService.createTransaction(transferRequest);
+        TransactionResponse result = transactionService.createTransaction(transferRequest, currentUser);
 
         assertThat(result.getAmount()).isEqualTo(500.0);
         verify(transactionRepository, times(1)).save(any(Transaction.class));
@@ -161,7 +168,7 @@ class TransactionServiceTest {
         when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
         when(clientRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> transactionService.createTransaction(transferRequest))
+        assertThatThrownBy(() -> transactionService.createTransaction(transferRequest, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Recipient not found with id: 99");
 
@@ -173,7 +180,7 @@ class TransactionServiceTest {
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
         when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
 
-        TransactionResponse result = transactionService.updateTransactionStatus(1L, Transaction.TransactionStatus.COMPLETED);
+        TransactionResponse result = transactionService.updateTransactionStatus(1L, Transaction.TransactionStatus.COMPLETED, currentUser);
 
         assertThat(result).isNotNull();
         verify(transactionRepository, times(1)).save(any(Transaction.class));
@@ -181,18 +188,18 @@ class TransactionServiceTest {
 
     @Test
     void deleteTransaction_existingId_deletesTransaction() {
-        when(transactionRepository.existsById(1L)).thenReturn(true);
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
 
-        transactionService.deleteTransaction(1L);
+        transactionService.deleteTransaction(1L, currentUser);
 
         verify(transactionRepository, times(1)).deleteById(1L);
     }
 
     @Test
     void deleteTransaction_nonExistingId_throwsException() {
-        when(transactionRepository.existsById(99L)).thenReturn(false);
+        when(transactionRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> transactionService.deleteTransaction(99L))
+        assertThatThrownBy(() -> transactionService.deleteTransaction(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Transaction not found with id: 99");
 

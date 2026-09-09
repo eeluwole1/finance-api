@@ -1,9 +1,11 @@
 package com.eeluwole.finance_api.rewards;
 
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.client.Client;
-import com.eeluwole.finance_api.client.ClientRepository;
+import com.eeluwole.finance_api.client.ClientAccessGuard;
 import com.eeluwole.finance_api.rewards.dto.CreateRewardRequest;
 import com.eeluwole.finance_api.rewards.dto.RewardResponse;
+import com.eeluwole.finance_api.common.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -12,29 +14,34 @@ import java.util.List;
 public class RewardService {
 
     private final RewardRepository rewardRepository;
-    private final ClientRepository clientRepository;
+    private final ClientAccessGuard clientAccessGuard;
 
     public RewardService(RewardRepository rewardRepository,
-            ClientRepository clientRepository) {
+            ClientAccessGuard clientAccessGuard) {
         this.rewardRepository = rewardRepository;
-        this.clientRepository = clientRepository;
+        this.clientAccessGuard = clientAccessGuard;
     }
 
-    public List<RewardResponse> getAllRewards() {
-        return rewardRepository.findAll().stream().map(this::toResponse).toList();
+    public List<RewardResponse> getAllRewards(User currentUser) {
+        return rewardRepository.findAll().stream()
+                .filter(r -> clientAccessGuard.owns(r.getClient(), currentUser))
+                .map(this::toResponse).toList();
     }
 
-    public RewardResponse getRewardById(Long id) {
+    public RewardResponse getRewardById(Long id, User currentUser) {
         Reward reward = rewardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reward not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Reward not found with id: " + id));
+        clientAccessGuard.assertOwnership(reward.getClient(), currentUser);
         return toResponse(reward);
     }
 
-    public List<RewardResponse> getRewardsByClient(Long clientId) {
+    public List<RewardResponse> getRewardsByClient(Long clientId, User currentUser) {
+        clientAccessGuard.requireOwnedClient(clientId, currentUser);
         return rewardRepository.findByClientId(clientId).stream().map(this::toResponse).toList();
     }
 
-    public Integer getTotalPointsByClient(Long clientId) {
+    public Integer getTotalPointsByClient(Long clientId, User currentUser) {
+        clientAccessGuard.requireOwnedClient(clientId, currentUser);
         return rewardRepository.findByClientId(clientId)
                 .stream()
                 .filter(r -> r.getType() == Reward.RewardType.EARNED
@@ -43,13 +50,14 @@ public class RewardService {
                 .sum();
     }
 
-    public List<RewardResponse> getRewardsByType(Reward.RewardType type) {
-        return rewardRepository.findByType(type).stream().map(this::toResponse).toList();
+    public List<RewardResponse> getRewardsByType(Reward.RewardType type, User currentUser) {
+        return rewardRepository.findByType(type).stream()
+                .filter(r -> clientAccessGuard.owns(r.getClient(), currentUser))
+                .map(this::toResponse).toList();
     }
 
-    public RewardResponse createReward(CreateRewardRequest request) {
-        Client client = clientRepository.findById(request.getClientId())
-                .orElseThrow(() -> new RuntimeException("Client not found with id: " + request.getClientId()));
+    public RewardResponse createReward(CreateRewardRequest request, User currentUser) {
+        Client client = clientAccessGuard.requireOwnedClient(request.getClientId(), currentUser);
 
         Reward reward = new Reward();
         reward.setClient(client);
@@ -60,17 +68,18 @@ public class RewardService {
         return toResponse(rewardRepository.save(reward));
     }
 
-    public RewardResponse updateRewardStatus(Long id, Reward.RewardStatus status) {
+    public RewardResponse updateRewardStatus(Long id, Reward.RewardStatus status, User currentUser) {
         Reward reward = rewardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reward not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Reward not found with id: " + id));
+        clientAccessGuard.assertOwnership(reward.getClient(), currentUser);
         reward.setStatus(status);
         return toResponse(rewardRepository.save(reward));
     }
 
-    public void deleteReward(Long id) {
-        if (!rewardRepository.existsById(id)) {
-            throw new RuntimeException("Reward not found with id: " + id);
-        }
+    public void deleteReward(Long id, User currentUser) {
+        Reward reward = rewardRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reward not found with id: " + id));
+        clientAccessGuard.assertOwnership(reward.getClient(), currentUser);
         rewardRepository.deleteById(id);
     }
 

@@ -1,6 +1,8 @@
 package com.eeluwole.finance_api.payment;
 
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.client.Client;
+import com.eeluwole.finance_api.client.ClientAccessGuard;
 import com.eeluwole.finance_api.client.ClientRepository;
 import com.eeluwole.finance_api.payment.dto.CreatePaymentRequest;
 import com.eeluwole.finance_api.payment.dto.PaymentResponse;
@@ -9,7 +11,6 @@ import com.eeluwole.finance_api.policy.PolicyRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -34,13 +35,13 @@ class PaymentServiceTest {
     @Mock
     private PolicyRepository policyRepository;
 
-    @InjectMocks
     private PaymentService paymentService;
 
     private Client client;
     private Policy policy;
     private Payment payment;
     private CreatePaymentRequest request;
+    private User currentUser;
 
     @BeforeEach
     void setUp() {
@@ -77,13 +78,19 @@ class PaymentServiceTest {
         request.setPolicyId(1L);
         request.setAmount(200.0);
         request.setMethod(Payment.PaymentMethod.BANK_TRANSFER);
+
+        currentUser = new User();
+        currentUser.setId(99L);
+        currentUser.setRole(User.Role.ADMIN);
+
+        paymentService = new PaymentService(paymentRepository, policyRepository, new ClientAccessGuard(clientRepository));
     }
 
     @Test
     void getAllPayments_returnsListOfPayments() {
         when(paymentRepository.findAll()).thenReturn(List.of(payment));
 
-        List<PaymentResponse> result = paymentService.getAllPayments();
+        List<PaymentResponse> result = paymentService.getAllPayments(currentUser);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getAmount()).isEqualTo(200.0);
@@ -93,7 +100,7 @@ class PaymentServiceTest {
     void getPaymentById_existingId_returnsPayment() {
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
 
-        PaymentResponse result = paymentService.getPaymentById(1L);
+        PaymentResponse result = paymentService.getPaymentById(1L, currentUser);
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getAmount()).isEqualTo(200.0);
@@ -103,7 +110,7 @@ class PaymentServiceTest {
     void getPaymentById_nonExistingId_throwsException() {
         when(paymentRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> paymentService.getPaymentById(99L))
+        assertThatThrownBy(() -> paymentService.getPaymentById(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Payment not found with id: 99");
     }
@@ -114,7 +121,7 @@ class PaymentServiceTest {
         when(policyRepository.findById(1L)).thenReturn(Optional.of(policy));
         when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
 
-        PaymentResponse result = paymentService.createPayment(request);
+        PaymentResponse result = paymentService.createPayment(request, currentUser);
 
         assertThat(result.getAmount()).isEqualTo(200.0);
         verify(paymentRepository, times(1)).save(any(Payment.class));
@@ -124,7 +131,7 @@ class PaymentServiceTest {
     void createPayment_clientNotFound_throwsException() {
         when(clientRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> paymentService.createPayment(request))
+        assertThatThrownBy(() -> paymentService.createPayment(request, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Client not found with id: 1");
 
@@ -136,7 +143,7 @@ class PaymentServiceTest {
         when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
         when(policyRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> paymentService.createPayment(request))
+        assertThatThrownBy(() -> paymentService.createPayment(request, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Policy not found with id: 1");
 
@@ -148,7 +155,7 @@ class PaymentServiceTest {
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
         when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
 
-        PaymentResponse result = paymentService.updatePaymentStatus(1L, Payment.PaymentStatus.COMPLETED);
+        PaymentResponse result = paymentService.updatePaymentStatus(1L, Payment.PaymentStatus.COMPLETED, currentUser);
 
         assertThat(result).isNotNull();
         verify(paymentRepository, times(1)).save(any(Payment.class));
@@ -156,18 +163,18 @@ class PaymentServiceTest {
 
     @Test
     void deletePayment_existingId_deletesPayment() {
-        when(paymentRepository.existsById(1L)).thenReturn(true);
+        when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
 
-        paymentService.deletePayment(1L);
+        paymentService.deletePayment(1L, currentUser);
 
         verify(paymentRepository, times(1)).deleteById(1L);
     }
 
     @Test
     void deletePayment_nonExistingId_throwsException() {
-        when(paymentRepository.existsById(99L)).thenReturn(false);
+        when(paymentRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> paymentService.deletePayment(99L))
+        assertThatThrownBy(() -> paymentService.deletePayment(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Payment not found with id: 99");
 

@@ -1,14 +1,16 @@
 package com.eeluwole.finance_api.beneficiary;
 
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.beneficiary.dto.BeneficiaryResponse;
 import com.eeluwole.finance_api.beneficiary.dto.CreateBeneficiaryRequest;
 import com.eeluwole.finance_api.client.Client;
+import com.eeluwole.finance_api.client.ClientAccessGuard;
+import com.eeluwole.finance_api.client.ClientRepository;
 import com.eeluwole.finance_api.policy.Policy;
 import com.eeluwole.finance_api.policy.PolicyRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -30,13 +32,16 @@ class BeneficiaryServiceTest {
     @Mock
     private PolicyRepository policyRepository;
 
-    @InjectMocks
+    @Mock
+    private ClientRepository clientRepository;
+
     private BeneficiaryService beneficiaryService;
 
     private Client client;
     private Policy policy;
     private Beneficiary beneficiary;
     private CreateBeneficiaryRequest request;
+    private User currentUser;
 
     @BeforeEach
     void setUp() {
@@ -79,13 +84,19 @@ class BeneficiaryServiceTest {
         request.setPhone("647-555-5678");
         request.setRelationship("Spouse");
         request.setPercentage(100.0);
+
+        currentUser = new User();
+        currentUser.setId(99L);
+        currentUser.setRole(User.Role.ADMIN);
+
+        beneficiaryService = new BeneficiaryService(beneficiaryRepository, policyRepository, new ClientAccessGuard(clientRepository));
     }
 
     @Test
     void getAllBeneficiaries_returnsListOfBeneficiaries() {
         when(beneficiaryRepository.findAll()).thenReturn(List.of(beneficiary));
 
-        List<BeneficiaryResponse> result = beneficiaryService.getAllBeneficiaries();
+        List<BeneficiaryResponse> result = beneficiaryService.getAllBeneficiaries(currentUser);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getEmail()).isEqualTo("jane@email.com");
@@ -95,7 +106,7 @@ class BeneficiaryServiceTest {
     void getBeneficiaryById_existingId_returnsBeneficiary() {
         when(beneficiaryRepository.findById(1L)).thenReturn(Optional.of(beneficiary));
 
-        BeneficiaryResponse result = beneficiaryService.getBeneficiaryById(1L);
+        BeneficiaryResponse result = beneficiaryService.getBeneficiaryById(1L, currentUser);
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getFirstName()).isEqualTo("Jane");
@@ -105,7 +116,7 @@ class BeneficiaryServiceTest {
     void getBeneficiaryById_nonExistingId_throwsException() {
         when(beneficiaryRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> beneficiaryService.getBeneficiaryById(99L))
+        assertThatThrownBy(() -> beneficiaryService.getBeneficiaryById(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Beneficiary not found with id: 99");
     }
@@ -115,7 +126,7 @@ class BeneficiaryServiceTest {
         when(policyRepository.findById(1L)).thenReturn(Optional.of(policy));
         when(beneficiaryRepository.save(any(Beneficiary.class))).thenReturn(beneficiary);
 
-        BeneficiaryResponse result = beneficiaryService.createBeneficiary(request);
+        BeneficiaryResponse result = beneficiaryService.createBeneficiary(request, currentUser);
 
         assertThat(result.getEmail()).isEqualTo("jane@email.com");
         verify(beneficiaryRepository, times(1)).save(any(Beneficiary.class));
@@ -125,7 +136,7 @@ class BeneficiaryServiceTest {
     void createBeneficiary_policyNotFound_throwsException() {
         when(policyRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> beneficiaryService.createBeneficiary(request))
+        assertThatThrownBy(() -> beneficiaryService.createBeneficiary(request, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Policy not found with id: 1");
 
@@ -137,7 +148,7 @@ class BeneficiaryServiceTest {
         when(beneficiaryRepository.findById(1L)).thenReturn(Optional.of(beneficiary));
         when(beneficiaryRepository.save(any(Beneficiary.class))).thenReturn(beneficiary);
 
-        BeneficiaryResponse result = beneficiaryService.updateBeneficiary(1L, request);
+        BeneficiaryResponse result = beneficiaryService.updateBeneficiary(1L, request, currentUser);
 
         assertThat(result.getFirstName()).isEqualTo("Jane");
         verify(beneficiaryRepository, times(1)).save(any(Beneficiary.class));
@@ -148,7 +159,7 @@ class BeneficiaryServiceTest {
         when(beneficiaryRepository.findById(1L)).thenReturn(Optional.of(beneficiary));
         when(beneficiaryRepository.save(any(Beneficiary.class))).thenReturn(beneficiary);
 
-        BeneficiaryResponse result = beneficiaryService.updateBeneficiaryStatus(1L, Beneficiary.BeneficiaryStatus.INACTIVE);
+        BeneficiaryResponse result = beneficiaryService.updateBeneficiaryStatus(1L, Beneficiary.BeneficiaryStatus.INACTIVE, currentUser);
 
         assertThat(result).isNotNull();
         verify(beneficiaryRepository, times(1)).save(any(Beneficiary.class));
@@ -156,18 +167,18 @@ class BeneficiaryServiceTest {
 
     @Test
     void deleteBeneficiary_existingId_deletesBeneficiary() {
-        when(beneficiaryRepository.existsById(1L)).thenReturn(true);
+        when(beneficiaryRepository.findById(1L)).thenReturn(Optional.of(beneficiary));
 
-        beneficiaryService.deleteBeneficiary(1L);
+        beneficiaryService.deleteBeneficiary(1L, currentUser);
 
         verify(beneficiaryRepository, times(1)).deleteById(1L);
     }
 
     @Test
     void deleteBeneficiary_nonExistingId_throwsException() {
-        when(beneficiaryRepository.existsById(99L)).thenReturn(false);
+        when(beneficiaryRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> beneficiaryService.deleteBeneficiary(99L))
+        assertThatThrownBy(() -> beneficiaryService.deleteBeneficiary(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Beneficiary not found with id: 99");
 

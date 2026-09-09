@@ -1,9 +1,11 @@
 package com.eeluwole.finance_api.policy;
 
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.client.Client;
-import com.eeluwole.finance_api.client.ClientRepository;
+import com.eeluwole.finance_api.client.ClientAccessGuard;
 import com.eeluwole.finance_api.policy.dto.CreatePolicyRequest;
 import com.eeluwole.finance_api.policy.dto.PolicyResponse;
+import com.eeluwole.finance_api.common.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -12,49 +14,52 @@ import java.util.List;
 public class PolicyService {
 
     private final PolicyRepository policyRepository;
-    private final ClientRepository clientRepository;
+    private final ClientAccessGuard clientAccessGuard;
 
     public PolicyService(PolicyRepository policyRepository,
-            ClientRepository clientRepository) {
+            ClientAccessGuard clientAccessGuard) {
         this.policyRepository = policyRepository;
-        this.clientRepository = clientRepository;
+        this.clientAccessGuard = clientAccessGuard;
     }
 
-    // Get all policies
-    public List<PolicyResponse> getAllPolicies() {
+    // Get all policies (own only, unless ADMIN)
+    public List<PolicyResponse> getAllPolicies(User currentUser) {
         return policyRepository.findAll()
                 .stream()
+                .filter(p -> clientAccessGuard.owns(p.getClient(), currentUser))
                 .map(this::toResponse)
                 .toList();
     }
 
     // Get policy by ID
-    public PolicyResponse getPolicyById(Long id) {
+    public PolicyResponse getPolicyById(Long id, User currentUser) {
         Policy policy = policyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Policy not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + id));
+        clientAccessGuard.assertOwnership(policy.getClient(), currentUser);
         return toResponse(policy);
     }
 
     // Get policies by client
-    public List<PolicyResponse> getPoliciesByClient(Long clientId) {
+    public List<PolicyResponse> getPoliciesByClient(Long clientId, User currentUser) {
+        clientAccessGuard.requireOwnedClient(clientId, currentUser);
         return policyRepository.findByClientId(clientId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
-    // Get policies by status
-    public List<PolicyResponse> getPoliciesByStatus(Policy.PolicyStatus status) {
+    // Get policies by status (own only, unless ADMIN)
+    public List<PolicyResponse> getPoliciesByStatus(Policy.PolicyStatus status, User currentUser) {
         return policyRepository.findByStatus(status)
                 .stream()
+                .filter(p -> clientAccessGuard.owns(p.getClient(), currentUser))
                 .map(this::toResponse)
                 .toList();
     }
 
     // Create policy
-    public PolicyResponse createPolicy(CreatePolicyRequest request) {
-        Client client = clientRepository.findById(request.getClientId())
-                .orElseThrow(() -> new RuntimeException("Client not found with id: " + request.getClientId()));
+    public PolicyResponse createPolicy(CreatePolicyRequest request, User currentUser) {
+        Client client = clientAccessGuard.requireOwnedClient(request.getClientId(), currentUser);
 
         if (policyRepository.existsByPolicyNumber(request.getPolicyNumber())) {
             throw new RuntimeException("Policy number already exists: " + request.getPolicyNumber());
@@ -73,9 +78,10 @@ public class PolicyService {
     }
 
     // Update policy
-    public PolicyResponse updatePolicy(Long id, CreatePolicyRequest request) {
+    public PolicyResponse updatePolicy(Long id, CreatePolicyRequest request, User currentUser) {
         Policy policy = policyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Policy not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + id));
+        clientAccessGuard.assertOwnership(policy.getClient(), currentUser);
 
         policy.setPolicyNumber(request.getPolicyNumber());
         policy.setType(request.getType());
@@ -88,18 +94,19 @@ public class PolicyService {
     }
 
     // Update policy status
-    public PolicyResponse updatePolicyStatus(Long id, Policy.PolicyStatus status) {
+    public PolicyResponse updatePolicyStatus(Long id, Policy.PolicyStatus status, User currentUser) {
         Policy policy = policyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Policy not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + id));
+        clientAccessGuard.assertOwnership(policy.getClient(), currentUser);
         policy.setStatus(status);
         return toResponse(policyRepository.save(policy));
     }
 
     // Delete policy
-    public void deletePolicy(Long id) {
-        if (!policyRepository.existsById(id)) {
-            throw new RuntimeException("Policy not found with id: " + id);
-        }
+    public void deletePolicy(Long id, User currentUser) {
+        Policy policy = policyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + id));
+        clientAccessGuard.assertOwnership(policy.getClient(), currentUser);
         policyRepository.deleteById(id);
     }
 

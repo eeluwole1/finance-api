@@ -1,9 +1,12 @@
 package com.eeluwole.finance_api.account;
 
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.client.Client;
-import com.eeluwole.finance_api.client.ClientRepository;
+import com.eeluwole.finance_api.client.ClientAccessGuard;
 import com.eeluwole.finance_api.account.dto.CreateAccountRequest;
 import com.eeluwole.finance_api.account.dto.AccountResponse;
+import com.eeluwole.finance_api.common.AppConstants;
+import com.eeluwole.finance_api.common.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -12,35 +15,40 @@ import java.util.List;
 public class AccountService {
 
     private final AccountRepository accountRepository;
-    private final ClientRepository clientRepository;
+    private final ClientAccessGuard clientAccessGuard;
 
     public AccountService(AccountRepository accountRepository,
-            ClientRepository clientRepository) {
+            ClientAccessGuard clientAccessGuard) {
         this.accountRepository = accountRepository;
-        this.clientRepository = clientRepository;
+        this.clientAccessGuard = clientAccessGuard;
     }
 
-    public List<AccountResponse> getAllAccounts() {
-        return accountRepository.findAll().stream().map(this::toResponse).toList();
+    public List<AccountResponse> getAllAccounts(User currentUser) {
+        return accountRepository.findAll().stream()
+                .filter(a -> clientAccessGuard.owns(a.getClient(), currentUser))
+                .map(this::toResponse).toList();
     }
 
-    public AccountResponse getAccountById(Long id) {
+    public AccountResponse getAccountById(Long id, User currentUser) {
         Account account = accountRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Account not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + id));
+        clientAccessGuard.assertOwnership(account.getClient(), currentUser);
         return toResponse(account);
     }
 
-    public List<AccountResponse> getAccountsByClient(Long clientId) {
+    public List<AccountResponse> getAccountsByClient(Long clientId, User currentUser) {
+        clientAccessGuard.requireOwnedClient(clientId, currentUser);
         return accountRepository.findByClientId(clientId).stream().map(this::toResponse).toList();
     }
 
-    public List<AccountResponse> getAccountsByStatus(Account.AccountStatus status) {
-        return accountRepository.findByStatus(status).stream().map(this::toResponse).toList();
+    public List<AccountResponse> getAccountsByStatus(Account.AccountStatus status, User currentUser) {
+        return accountRepository.findByStatus(status).stream()
+                .filter(a -> clientAccessGuard.owns(a.getClient(), currentUser))
+                .map(this::toResponse).toList();
     }
 
-    public AccountResponse createAccount(CreateAccountRequest request) {
-        Client client = clientRepository.findById(request.getClientId())
-                .orElseThrow(() -> new RuntimeException("Client not found with id: " + request.getClientId()));
+    public AccountResponse createAccount(CreateAccountRequest request, User currentUser) {
+        Client client = clientAccessGuard.requireOwnedClient(request.getClientId(), currentUser);
 
         if (accountRepository.existsByAccountNumber(request.getAccountNumber())) {
             throw new RuntimeException("Account number already exists: " + request.getAccountNumber());
@@ -55,13 +63,14 @@ public class AccountService {
         return toResponse(accountRepository.save(account));
     }
 
-    public AccountResponse deposit(Long id, Double amount) {
+    public AccountResponse deposit(Long id, Double amount, User currentUser) {
         if (amount == null || amount <= 0) {
             throw new RuntimeException("Deposit amount must be greater than zero");
         }
 
         Account account = accountRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Account not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + id));
+        clientAccessGuard.assertOwnership(account.getClient(), currentUser);
 
         if (account.getStatus() == Account.AccountStatus.FROZEN) {
             throw new RuntimeException("Cannot deposit to a frozen account");
@@ -70,21 +79,24 @@ public class AccountService {
             throw new RuntimeException("Cannot deposit to a closed account");
         }
 
-        if (account.getBalance() + amount > 1000000) {
-            throw new RuntimeException("Deposit would exceed maximum balance limit of 1,000,000");
+        if (account.getBalance() + amount > AppConstants.MAX_ACCOUNT_BALANCE) {
+            throw new RuntimeException(String.format(java.util.Locale.US,
+                    "Deposit would exceed maximum balance limit of %,.0f", AppConstants.MAX_ACCOUNT_BALANCE));
         }
 
         account.setBalance(account.getBalance() + amount);
         return toResponse(accountRepository.save(account));
     }
 
-    public AccountResponse withdraw(Long id, Double amount) {
+    public AccountResponse withdraw(Long id, Double amount, User currentUser) {
         if (amount == null || amount <= 0) {
             throw new RuntimeException("withdrawal amount must be greater than zero");
         }
 
         Account account = accountRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Account not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + id));
+        clientAccessGuard.assertOwnership(account.getClient(), currentUser);
+
         if (account.getStatus() == Account.AccountStatus.FROZEN) {
             throw new RuntimeException("Cannot withdraw from a frozen account");
         }
@@ -101,17 +113,18 @@ public class AccountService {
         return toResponse(accountRepository.save(account));
     }
 
-    public AccountResponse updateAccountStatus(Long id, Account.AccountStatus status) {
+    public AccountResponse updateAccountStatus(Long id, Account.AccountStatus status, User currentUser) {
         Account account = accountRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Account not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + id));
+        clientAccessGuard.assertOwnership(account.getClient(), currentUser);
         account.setStatus(status);
         return toResponse(accountRepository.save(account));
     }
 
-    public void deleteAccount(Long id) {
-        if (!accountRepository.existsById(id)) {
-            throw new RuntimeException("Account not found with id: " + id);
-        }
+    public void deleteAccount(Long id, User currentUser) {
+        Account account = accountRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + id));
+        clientAccessGuard.assertOwnership(account.getClient(), currentUser);
         accountRepository.deleteById(id);
     }
 

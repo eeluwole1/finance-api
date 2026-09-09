@@ -2,14 +2,15 @@ package com.eeluwole.finance_api.advanced;
 
 import com.eeluwole.finance_api.advanced.dto.AdvancedResponse;
 import com.eeluwole.finance_api.advanced.dto.CreateAdvancedRequest;
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.client.Client;
+import com.eeluwole.finance_api.client.ClientAccessGuard;
 import com.eeluwole.finance_api.client.ClientRepository;
 import com.eeluwole.finance_api.policy.Policy;
 import com.eeluwole.finance_api.policy.PolicyRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -34,13 +35,13 @@ class AdvancedServiceTest {
     @Mock
     private PolicyRepository policyRepository;
 
-    @InjectMocks
     private AdvancedService advancedService;
 
     private Client client;
     private Policy policy;
     private Advanced loan;
     private CreateAdvancedRequest request;
+    private User currentUser;
 
     @BeforeEach
     void setUp() {
@@ -79,13 +80,19 @@ class AdvancedServiceTest {
         request.setLoanAmount(10000.0);
         request.setInterestRate(5.0);
         request.setDueDate(LocalDate.of(2025, 6, 1));
+
+        currentUser = new User();
+        currentUser.setId(99L);
+        currentUser.setRole(User.Role.ADMIN);
+
+        advancedService = new AdvancedService(advancedRepository, policyRepository, new ClientAccessGuard(clientRepository));
     }
 
     @Test
     void getAllLoans_returnsListOfLoans() {
         when(advancedRepository.findAll()).thenReturn(List.of(loan));
 
-        List<AdvancedResponse> result = advancedService.getAllLoans();
+        List<AdvancedResponse> result = advancedService.getAllLoans(currentUser);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getLoanAmount()).isEqualTo(10000.0);
@@ -95,7 +102,7 @@ class AdvancedServiceTest {
     void getLoanById_existingId_returnsLoan() {
         when(advancedRepository.findById(1L)).thenReturn(Optional.of(loan));
 
-        AdvancedResponse result = advancedService.getLoanById(1L);
+        AdvancedResponse result = advancedService.getLoanById(1L, currentUser);
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getLoanAmount()).isEqualTo(10000.0);
@@ -105,7 +112,7 @@ class AdvancedServiceTest {
     void getLoanById_nonExistingId_throwsException() {
         when(advancedRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> advancedService.getLoanById(99L))
+        assertThatThrownBy(() -> advancedService.getLoanById(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Loan not found with id: 99");
     }
@@ -116,7 +123,7 @@ class AdvancedServiceTest {
         when(policyRepository.findById(1L)).thenReturn(Optional.of(policy));
         when(advancedRepository.save(any(Advanced.class))).thenReturn(loan);
 
-        AdvancedResponse result = advancedService.createLoan(request);
+        AdvancedResponse result = advancedService.createLoan(request, currentUser);
 
         assertThat(result.getLoanAmount()).isEqualTo(10000.0);
         verify(advancedRepository, times(1)).save(any(Advanced.class));
@@ -126,7 +133,7 @@ class AdvancedServiceTest {
     void createLoan_clientNotFound_throwsException() {
         when(clientRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> advancedService.createLoan(request))
+        assertThatThrownBy(() -> advancedService.createLoan(request, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Client not found with id: 1");
 
@@ -138,7 +145,7 @@ class AdvancedServiceTest {
         when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
         when(policyRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> advancedService.createLoan(request))
+        assertThatThrownBy(() -> advancedService.createLoan(request, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Policy not found with id: 1");
 
@@ -150,7 +157,7 @@ class AdvancedServiceTest {
         when(advancedRepository.findById(1L)).thenReturn(Optional.of(loan));
         when(advancedRepository.save(any(Advanced.class))).thenReturn(loan);
 
-        AdvancedResponse result = advancedService.updateLoanStatus(1L, Advanced.LoanStatus.REPAID);
+        AdvancedResponse result = advancedService.updateLoanStatus(1L, Advanced.LoanStatus.REPAID, currentUser);
 
         assertThat(result).isNotNull();
         verify(advancedRepository, times(1)).save(any(Advanced.class));
@@ -158,18 +165,18 @@ class AdvancedServiceTest {
 
     @Test
     void deleteLoan_existingId_deletesLoan() {
-        when(advancedRepository.existsById(1L)).thenReturn(true);
+        when(advancedRepository.findById(1L)).thenReturn(Optional.of(loan));
 
-        advancedService.deleteLoan(1L);
+        advancedService.deleteLoan(1L, currentUser);
 
         verify(advancedRepository, times(1)).deleteById(1L);
     }
 
     @Test
     void deleteLoan_nonExistingId_throwsException() {
-        when(advancedRepository.existsById(99L)).thenReturn(false);
+        when(advancedRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> advancedService.deleteLoan(99L))
+        assertThatThrownBy(() -> advancedService.deleteLoan(99L, currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Loan not found with id: 99");
 

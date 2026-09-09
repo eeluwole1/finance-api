@@ -1,11 +1,13 @@
 package com.eeluwole.finance_api.claims;
 
+import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.client.Client;
-import com.eeluwole.finance_api.client.ClientRepository;
+import com.eeluwole.finance_api.client.ClientAccessGuard;
 import com.eeluwole.finance_api.claims.dto.CreateClaimRequest;
 import com.eeluwole.finance_api.claims.dto.ClaimResponse;
 import com.eeluwole.finance_api.policy.Policy;
 import com.eeluwole.finance_api.policy.PolicyRepository;
+import com.eeluwole.finance_api.common.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -14,45 +16,53 @@ import java.util.List;
 public class ClaimService {
 
     private final ClaimRepository claimRepository;
-    private final ClientRepository clientRepository;
     private final PolicyRepository policyRepository;
+    private final ClientAccessGuard clientAccessGuard;
 
     public ClaimService(ClaimRepository claimRepository,
-            ClientRepository clientRepository,
-            PolicyRepository policyRepository) {
+            PolicyRepository policyRepository,
+            ClientAccessGuard clientAccessGuard) {
         this.claimRepository = claimRepository;
-        this.clientRepository = clientRepository;
         this.policyRepository = policyRepository;
+        this.clientAccessGuard = clientAccessGuard;
     }
 
-    public List<ClaimResponse> getAllClaims() {
-        return claimRepository.findAll().stream().map(this::toResponse).toList();
+    public List<ClaimResponse> getAllClaims(User currentUser) {
+        return claimRepository.findAll().stream()
+                .filter(c -> clientAccessGuard.owns(c.getClient(), currentUser))
+                .map(this::toResponse).toList();
     }
 
-    public ClaimResponse getClaimById(Long id) {
+    public ClaimResponse getClaimById(Long id, User currentUser) {
         Claim claim = claimRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Claim not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + id));
+        clientAccessGuard.assertOwnership(claim.getClient(), currentUser);
         return toResponse(claim);
     }
 
-    public List<ClaimResponse> getClaimsByClient(Long clientId) {
+    public List<ClaimResponse> getClaimsByClient(Long clientId, User currentUser) {
+        clientAccessGuard.requireOwnedClient(clientId, currentUser);
         return claimRepository.findByClientId(clientId).stream().map(this::toResponse).toList();
     }
 
-    public List<ClaimResponse> getClaimsByPolicy(Long policyId) {
+    public List<ClaimResponse> getClaimsByPolicy(Long policyId, User currentUser) {
+        Policy policy = policyRepository.findById(policyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + policyId));
+        clientAccessGuard.assertOwnership(policy.getClient(), currentUser);
         return claimRepository.findByPolicyId(policyId).stream().map(this::toResponse).toList();
     }
 
-    public List<ClaimResponse> getClaimsByStatus(Claim.ClaimStatus status) {
-        return claimRepository.findByStatus(status).stream().map(this::toResponse).toList();
+    public List<ClaimResponse> getClaimsByStatus(Claim.ClaimStatus status, User currentUser) {
+        return claimRepository.findByStatus(status).stream()
+                .filter(c -> clientAccessGuard.owns(c.getClient(), currentUser))
+                .map(this::toResponse).toList();
     }
 
-    public ClaimResponse createClaim(CreateClaimRequest request) {
-        Client client = clientRepository.findById(request.getClientId())
-                .orElseThrow(() -> new RuntimeException("Client not found with id: " + request.getClientId()));
+    public ClaimResponse createClaim(CreateClaimRequest request, User currentUser) {
+        Client client = clientAccessGuard.requireOwnedClient(request.getClientId(), currentUser);
 
         Policy policy = policyRepository.findById(request.getPolicyId())
-                .orElseThrow(() -> new RuntimeException("Policy not found with id: " + request.getPolicyId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + request.getPolicyId()));
 
         Claim claim = new Claim();
         claim.setClient(client);
@@ -64,17 +74,18 @@ public class ClaimService {
         return toResponse(claimRepository.save(claim));
     }
 
-    public ClaimResponse updateClaimStatus(Long id, Claim.ClaimStatus status) {
+    public ClaimResponse updateClaimStatus(Long id, Claim.ClaimStatus status, User currentUser) {
         Claim claim = claimRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Claim not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + id));
+        clientAccessGuard.assertOwnership(claim.getClient(), currentUser);
         claim.setStatus(status);
         return toResponse(claimRepository.save(claim));
     }
 
-    public void deleteClaim(Long id) {
-        if (!claimRepository.existsById(id)) {
-            throw new RuntimeException("Claim not found with id: " + id);
-        }
+    public void deleteClaim(Long id, User currentUser) {
+        Claim claim = claimRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + id));
+        clientAccessGuard.assertOwnership(claim.getClient(), currentUser);
         claimRepository.deleteById(id);
     }
 
