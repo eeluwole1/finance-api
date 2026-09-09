@@ -20,8 +20,8 @@ public class Beneficiary {
     @EqualsAndHashCode.Exclude
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "policy_id")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "policy_id", nullable = false)
     private Policy policy;
 
     private String firstName;

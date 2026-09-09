@@ -1,13 +1,27 @@
 package com.eeluwole.finance_api.advanced.dto;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.time.LocalDate;
 
 public class CreateAdvancedRequest {
 
+    @NotNull
     private Long clientId;
+
+    @NotNull
     private Long policyId;
+
+    @NotNull
+    @Positive
     private Double loanAmount;
+
+    @NotNull
+    @PositiveOrZero
     private Double interestRate;
+
+    @NotNull
     private LocalDate dueDate;
 
     public Long getClientId() {

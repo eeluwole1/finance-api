@@ -1,3 +1,11 @@
+-- ADMIN USER — email: admin@priscillatrust.com / password: Admin@12345
+-- ADMIN can see every client below regardless of ownership; log in with this
+-- account to explore the seeded data on a fresh deploy.
+INSERT INTO users (first_name, last_name, email, password, role)
+SELECT 'Priscilla', 'Trust', 'admin@priscillatrust.com',
+    '$2a$10$ivg4EkSUBps4j6YzVGq0DOSGDFamXTNuSnCzhx8j.rT0URlXu.FfK', 'ADMIN'
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'admin@priscillatrust.com');
+
 -- CLIENTS ─
 INSERT INTO clients (first_name, last_name, email, phone, address, status, created_at)
 SELECT 'John', 'Smith', 'john@email.com', '647-555-1234', '123 Main St Toronto', 'ACTIVE', NOW()

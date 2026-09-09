@@ -3,6 +3,7 @@ package com.eeluwole.finance_api.advanced;
 import com.eeluwole.finance_api.advanced.dto.CreateAdvancedRequest;
 import com.eeluwole.finance_api.advanced.dto.AdvancedResponse;
 import com.eeluwole.finance_api.auth.User;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -47,7 +48,7 @@ public class AdvancedController {
 
     // POST /api/v1/loans
     @PostMapping
-    public ResponseEntity<AdvancedResponse> createLoan(@RequestBody CreateAdvancedRequest request,
+    public ResponseEntity<AdvancedResponse> createLoan(@Valid @RequestBody CreateAdvancedRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(advancedService.createLoan(request, currentUser));
     }

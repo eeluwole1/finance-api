@@ -23,8 +23,8 @@ public class Account {
     @Column(unique = true)
     private String accountNumber;
 
-    @ManyToOne
-    @JoinColumn(name = "client_id")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "client_id", nullable = false)
     private Client client;
 
     @Enumerated(EnumType.STRING)

@@ -20,8 +20,8 @@ public class Reward {
     @EqualsAndHashCode.Exclude
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "client_id")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "client_id", nullable = false)
     private Client client;
 
     private Integer points;

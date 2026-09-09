@@ -1,12 +1,22 @@
 package com.eeluwole.finance_api.payment.dto;
 
 import com.eeluwole.finance_api.payment.Payment;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 public class CreatePaymentRequest {
 
+    @NotNull
     private Long clientId;
+
+    @NotNull
     private Long policyId;
+
+    @NotNull
+    @Positive
     private Double amount;
+
+    @NotNull
     private Payment.PaymentMethod method;
 
     public Long getClientId() {

@@ -3,6 +3,7 @@ package com.eeluwole.finance_api.client;
 import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.client.dto.CreateClientRequest;
 import com.eeluwole.finance_api.client.dto.ClientResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -40,7 +41,7 @@ public class ClientController {
 
     // POST /api/v1/clients
     @PostMapping
-    public ResponseEntity<ClientResponse> createClient(@RequestBody CreateClientRequest request,
+    public ResponseEntity<ClientResponse> createClient(@Valid @RequestBody CreateClientRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(clientService.createClient(request, currentUser));
     }
@@ -48,7 +49,7 @@ public class ClientController {
     // PUT /api/v1/clients/{id}
     @PutMapping("/{id}")
     public ResponseEntity<ClientResponse> updateClient(@PathVariable Long id,
-            @RequestBody CreateClientRequest request,
+            @Valid @RequestBody CreateClientRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(clientService.updateClient(id, request, currentUser));
     }

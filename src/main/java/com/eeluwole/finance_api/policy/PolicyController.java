@@ -3,6 +3,7 @@ package com.eeluwole.finance_api.policy;
 import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.policy.dto.CreatePolicyRequest;
 import com.eeluwole.finance_api.policy.dto.PolicyResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -48,7 +49,7 @@ public class PolicyController {
     // POST /api/v1/policies
     @PostMapping
     public ResponseEntity<PolicyResponse> createPolicy(
-            @RequestBody CreatePolicyRequest request, @AuthenticationPrincipal User currentUser) {
+            @Valid @RequestBody CreatePolicyRequest request, @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(policyService.createPolicy(request, currentUser));
     }
 
@@ -56,7 +57,7 @@ public class PolicyController {
     @PutMapping("/{id}")
     public ResponseEntity<PolicyResponse> updatePolicy(
             @PathVariable Long id,
-            @RequestBody CreatePolicyRequest request,
+            @Valid @RequestBody CreatePolicyRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(policyService.updatePolicy(id, request, currentUser));
     }

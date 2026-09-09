@@ -3,6 +3,7 @@ package com.eeluwole.finance_api.beneficiary;
 import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.beneficiary.dto.CreateBeneficiaryRequest;
 import com.eeluwole.finance_api.beneficiary.dto.BeneficiaryResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -40,7 +41,7 @@ public class BeneficiaryController {
 
     // POST /api/v1/beneficiaries
     @PostMapping
-    public ResponseEntity<BeneficiaryResponse> createBeneficiary(@RequestBody CreateBeneficiaryRequest request,
+    public ResponseEntity<BeneficiaryResponse> createBeneficiary(@Valid @RequestBody CreateBeneficiaryRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(beneficiaryService.createBeneficiary(request, currentUser));
     }
@@ -49,7 +50,7 @@ public class BeneficiaryController {
     @PutMapping("/{id}")
     public ResponseEntity<BeneficiaryResponse> updateBeneficiary(
             @PathVariable Long id,
-            @RequestBody CreateBeneficiaryRequest request,
+            @Valid @RequestBody CreateBeneficiaryRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(beneficiaryService.updateBeneficiary(id, request, currentUser));
     }

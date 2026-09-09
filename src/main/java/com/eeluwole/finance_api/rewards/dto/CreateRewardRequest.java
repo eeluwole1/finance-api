@@ -1,12 +1,23 @@
 package com.eeluwole.finance_api.rewards.dto;
 
 import com.eeluwole.finance_api.rewards.Reward;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 public class CreateRewardRequest {
 
+    @NotNull
     private Long clientId;
+
+    @NotNull
+    @Positive
     private Integer points;
+
+    @NotBlank
     private String reason;
+
+    @NotNull
     private Reward.RewardType type;
 
     public Long getClientId() {

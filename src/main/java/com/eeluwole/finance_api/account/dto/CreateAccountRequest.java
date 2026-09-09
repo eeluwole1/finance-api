@@ -1,12 +1,22 @@
 package com.eeluwole.finance_api.account.dto;
 
 import com.eeluwole.finance_api.account.Account;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 
 public class CreateAccountRequest {
 
+    @NotNull
     private Long clientId;
+
+    @NotBlank
     private String accountNumber;
+
+    @NotNull
     private Account.AccountType type;
+
+    @PositiveOrZero
     private Double balance;
 
     public Long getClientId() {

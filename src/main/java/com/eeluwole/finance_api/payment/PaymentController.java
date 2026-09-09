@@ -3,6 +3,7 @@ package com.eeluwole.finance_api.payment;
 import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.payment.dto.CreatePaymentRequest;
 import com.eeluwole.finance_api.payment.dto.PaymentResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -54,7 +55,7 @@ public class PaymentController {
 
     // POST /api/v1/payments
     @PostMapping
-    public ResponseEntity<PaymentResponse> createPayment(@RequestBody CreatePaymentRequest request,
+    public ResponseEntity<PaymentResponse> createPayment(@Valid @RequestBody CreatePaymentRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(paymentService.createPayment(request, currentUser));
     }

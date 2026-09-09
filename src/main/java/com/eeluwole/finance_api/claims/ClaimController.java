@@ -3,6 +3,7 @@ package com.eeluwole.finance_api.claims;
 import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.claims.dto.CreateClaimRequest;
 import com.eeluwole.finance_api.claims.dto.ClaimResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -54,7 +55,7 @@ public class ClaimController {
 
     // POST /api/v1/claims
     @PostMapping
-    public ResponseEntity<ClaimResponse> createClaim(@RequestBody CreateClaimRequest request,
+    public ResponseEntity<ClaimResponse> createClaim(@Valid @RequestBody CreateClaimRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(claimService.createClaim(request, currentUser));
     }

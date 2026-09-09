@@ -3,6 +3,7 @@ package com.eeluwole.finance_api.rewards;
 import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.rewards.dto.CreateRewardRequest;
 import com.eeluwole.finance_api.rewards.dto.RewardResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -54,7 +55,7 @@ public class RewardController {
 
     // POST /api/v1/rewards
     @PostMapping
-    public ResponseEntity<RewardResponse> createReward(@RequestBody CreateRewardRequest request,
+    public ResponseEntity<RewardResponse> createReward(@Valid @RequestBody CreateRewardRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(rewardService.createReward(request, currentUser));
     }

@@ -3,6 +3,7 @@ package com.eeluwole.finance_api.account;
 import com.eeluwole.finance_api.account.dto.CreateAccountRequest;
 import com.eeluwole.finance_api.account.dto.AccountResponse;
 import com.eeluwole.finance_api.auth.User;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -47,7 +48,7 @@ public class AccountController {
 
     // POST /api/v1/accounts
     @PostMapping
-    public ResponseEntity<AccountResponse> createAccount(@RequestBody CreateAccountRequest request,
+    public ResponseEntity<AccountResponse> createAccount(@Valid @RequestBody CreateAccountRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(accountService.createAccount(request, currentUser));
     }

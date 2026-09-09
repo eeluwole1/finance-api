@@ -3,6 +3,7 @@ package com.eeluwole.finance_api.transaction;
 import com.eeluwole.finance_api.auth.User;
 import com.eeluwole.finance_api.transaction.dto.CreateTransactionRequest;
 import com.eeluwole.finance_api.transaction.dto.TransactionResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -54,7 +55,7 @@ public class TransactionController {
 
     // POST /api/v1/transactions
     @PostMapping
-    public ResponseEntity<TransactionResponse> createTransaction(@RequestBody CreateTransactionRequest request,
+    public ResponseEntity<TransactionResponse> createTransaction(@Valid @RequestBody CreateTransactionRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(transactionService.createTransaction(request, currentUser));
     }
