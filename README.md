@@ -7,10 +7,12 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [User Story](#user-story)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
 - [Testing](#testing)
+- [Branch Workflow](#branch-workflow)
 - [How the Modules Connect](#how-the-modules-connect)
 - [API Endpoints](#api-endpoints)
   - [Auth](#auth)
@@ -44,6 +46,16 @@
 - **Rewards** — Loyalty points for on-time payments and healthy behaviour
 
 **73 endpoints** across 10 modules, secured with JWT authentication.
+
+---
+
+## User Story
+
+> **As a Canada Life customer, I want to securely manage my own accounts, insurance policies, payments, and claims online — and be confident that no one else can see or touch my financial data — so that I can handle my finances and coverage without needing to call an agent for every request.**
+
+**The 30-second interview version:** This is a backend API for an insurance/wealth-management platform. A client registers, gets a JWT, and from there owns everything hanging off their profile — savings/chequing/investment accounts, life/health/auto/home insurance policies, the beneficiaries on those policies, premium payments, claims, policy loans, and reward points.
+
+The part worth highlighting: I found and fixed a broken-access-control bug where any logged-in user could read or edit *any* client's data, not just their own — the `User` who authenticates had no relationship at all to the `Client` records the API actually protects. I added an ownership layer (`Client.ownerUserId` + a shared `ClientAccessGuard`) so a regular `USER` can only touch their own client and everything under it, while an `ADMIN` role can see everything — matching how a real back-office employee would need broader access than a self-service customer. A non-owned record and a missing record both return an identical `404`, so a caller can't even probe which client IDs exist. That fix, plus the 108 unit tests that back it up, is the part of this project I'd want to walk through in an interview.
 
 ---
 
@@ -208,6 +220,21 @@ class ClientServiceTest {
                 .hasMessageContaining("Client with this email already exists");
     }
 }
+```
+
+---
+
+## Branch Workflow
+
+`dev` is where new work gets built and verified (`mvn test`, plus a manual boot against the local database) before anything ships. `main` is the stable branch — once a change on `dev` looks right, it's fast-forward merged into `main`. When this project is deployed to Azure, deployment will be wired to trigger off pushes to `main` only, the same way the sibling `LedgerApp`/`LedgerClient` projects work, so `dev` can be pushed and iterated on freely without touching anything live.
+
+```bash
+git checkout dev
+# ...make changes, mvn test...
+git checkout main
+git merge dev
+git push origin main
+git checkout dev
 ```
 
 ---
