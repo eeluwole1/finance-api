@@ -1,6 +1,6 @@
 # Finance API
 
-> A backend REST API simulating a financial services platform inspired by Canada Life — one of Canada's leading insurance, wealth management, and financial services companies.
+> A backend REST API simulating the core systems of an insurance and wealth-management company — accounts, policies, claims, payments, and rewards, all scoped to the client who owns them.
 
 ---
 
@@ -51,7 +51,7 @@
 
 ## User Story
 
-> **As a Canada Life customer, I want to securely manage my own accounts, insurance policies, payments, and claims online — and be confident that no one else can see or touch my financial data — so that I can handle my finances and coverage without needing to call an agent for every request.**
+> **As a policyholder, I want to securely manage my own accounts, insurance policies, payments, and claims online — and be confident that no one else can see or touch my financial data — so that I can handle my finances and coverage without needing to call an agent for every request.**
 
 **The 30-second interview version:** This is a backend API for an insurance/wealth-management platform. A client registers, gets a JWT, and from there owns everything hanging off their profile — savings/chequing/investment accounts, life/health/auto/home insurance policies, the beneficiaries on those policies, premium payments, claims, policy loans, and reward points.
 
@@ -305,7 +305,7 @@ POST /api/v1/auth/register
 
 ### Client
 
-> The core entity. Every policy, payment, claim, and account belongs to a client. Represents a Canada Life policyholder.
+> The core entity. Every policy, payment, claim, and account belongs to a client. Represents a policyholder.
 
 | Method | Endpoint                       | Description               |
 |--------|--------------------------------|---------------------------|
@@ -345,7 +345,7 @@ POST /api/v1/auth/register
 
 ### Policy
 
-> An insurance contract between Canada Life and a client. A client can hold multiple policies. The policy defines coverage type, premium amount, and term dates.
+> An insurance contract between the company and a client. A client can hold multiple policies. The policy defines coverage type, premium amount, and term dates.
 
 | Method | Endpoint                            | Description              |
 |--------|-------------------------------------|--------------------------|
@@ -600,8 +600,8 @@ The API auto-inserts sample data on every startup via `data.sql`:
 ## Author
 
 **Elusiyan Mathew Eluwole**  
-Built as a learning project alongside a Software Developer position at Canada Life (May 2026)
+A personal project built to practice backend architecture, JWT authentication, and secure access-control design in a realistic, insurance-domain data model.
 
 ---
 
-*Inspired by Canada Life — Insurance, Wealth Management, and Financial Services*
+*A fictional insurance, wealth management, and financial services platform, built for learning and portfolio purposes.*
