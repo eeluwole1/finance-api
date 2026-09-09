@@ -14,6 +14,7 @@
 - [Testing](#testing)
 - [Branch Workflow](#branch-workflow)
 - [How the Modules Connect](#how-the-modules-connect)
+- [Authentication & Authorization](#authentication--authorization)
 - [API Endpoints](#api-endpoints)
   - [Auth](#auth)
   - [Client](#client)
@@ -166,7 +167,7 @@ Seed data (3 clients, 4 policies) is inserted automatically via `data.sql`.
 http://localhost:8080/swagger-ui/index.html
 ```
 
-All 10 controllers and 73 endpoints are listed and testable from the browser.
+All 10 controllers and 73 endpoints are listed and testable from the browser. Log in via `POST /api/v1/auth/login` (or use the seeded [demo admin](#seed-data)), copy the returned token, click **Authorize** at the top of the page, and paste it in — every "Try it out" call will carry it from then on.
 
 ---
 
@@ -262,6 +263,38 @@ CLIENT (John Smith is registered as a policyholder)
 
 ---
 
+## Authentication & Authorization
+
+**How a request becomes authenticated:**
+
+1. `POST /api/v1/auth/register` or `POST /api/v1/auth/login` validates credentials (password hashed via `PasswordHasher`-equivalent `PasswordEncoder`, never stored or compared as plain text) and returns a signed JWT.
+2. Every other request sends that token as `Authorization: Bearer <token>`. `JwtAuthFilter` validates it and loads the corresponding `User` as the Spring Security principal.
+3. In **Swagger UI**, click the **Authorize** button (top right), paste the token returned from `/auth/login`, and every subsequent "Try it out" call carries it automatically — no manual header editing needed.
+
+**How ownership is enforced (not just authentication):**
+
+Being logged in only proves *who* you are — it doesn't by itself stop you from reading or editing *someone else's* data. Every domain in this API (accounts, policies, claims, payments, loans, transactions, rewards) ultimately belongs to a `Client`, and every `Client` has an `ownerUserId` pointing back to the `User` who created it:
+
+- A `USER` can only read or modify their own client and everything hanging off it. A shared `ClientAccessGuard` component performs this check everywhere, so it isn't duplicated (or accidentally skipped) per controller.
+- An `ADMIN` bypasses ownership and can see every client — modeling how a back-office employee would need broader access than a self-service customer. The seeded demo account (see [Seed Data](#seed-data)) is an `ADMIN`.
+- A client that exists but isn't yours, and a client that doesn't exist at all, both return an identical `404` — so a caller can't even probe which client IDs are real.
+
+**Request validation:**
+
+Every `POST`/`PUT` body is validated with Bean Validation (`@NotBlank`, `@Positive`, `@Email`, etc.) before it reaches a service. A failed validation returns `400` with a field-level breakdown:
+
+```json
+{
+  "message": "Validation failed",
+  "errors": {
+    "firstName": "must not be blank",
+    "email": "must be a well-formed email address"
+  }
+}
+```
+
+---
+
 ## API Endpoints
 
 Base URL: `http://localhost:8080/api/v1`
@@ -305,7 +338,7 @@ POST /api/v1/auth/register
 
 ### Client
 
-> The core entity. Every policy, payment, claim, and account belongs to a client. Represents a policyholder.
+> The core entity. Every policy, payment, claim, and account belongs to a client. Represents a policyholder. `GET` endpoints here (and everywhere else in the API) are scoped to the caller's own client unless they're an `ADMIN` — see [Authentication & Authorization](#authentication--authorization).
 
 | Method | Endpoint                       | Description               |
 |--------|--------------------------------|---------------------------|
@@ -337,7 +370,7 @@ POST /api/v1/auth/register
 | PATCH  | `/accounts/{id}/status?status=`     | Activate, freeze, or close account |
 | DELETE | `/accounts/{id}`                    | Delete an account                  |
 
-**Account types:** `SAVINGS` · `CHEWING` · `INVESTMENT`
+**Account types:** `SAVINGS` · `CHEQUING` · `INVESTMENT`
 
 **Account statuses:** `ACTIVE` · `FROZEN` · `CLOSED`
 
@@ -580,7 +613,13 @@ Client
 
 ## Seed Data
 
-The API auto-inserts sample data on every startup via `data.sql`:
+The API auto-inserts sample data on every startup via `data.sql` (idempotent — safe to restart without duplicating rows).
+
+**Demo admin login** — use this to actually see the seeded clients below; without an `ADMIN` login they're invisible to any other account, since they have no owner:
+
+| Email                       | Password      | Role  |
+|------------------------------|---------------|-------|
+| `admin@priscillatrust.com`   | `Admin@12345` | ADMIN |
 
 | Client        | Email             | Status |
 |---------------|-------------------|--------|
