@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,14 +53,14 @@ class AccountServiceTest {
         account.setAccountNumber("ACC-001");
         account.setClient(client);
         account.setType(Account.AccountType.SAVINGS);
-        account.setBalance(500.0);
+        account.setBalance(BigDecimal.valueOf(500.0));
         account.setStatus(Account.AccountStatus.ACTIVE);
 
         request = new CreateAccountRequest();
         request.setClientId(1L);
         request.setAccountNumber("ACC-001");
         request.setType(Account.AccountType.SAVINGS);
-        request.setBalance(500.0);
+        request.setBalance(BigDecimal.valueOf(500.0));
 
         currentUser = new User();
         currentUser.setId(99L);
@@ -137,7 +138,7 @@ class AccountServiceTest {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(accountRepository.save(any(Account.class))).thenReturn(account);
 
-        AccountResponse result = accountService.deposit(1L, 100.0, currentUser);
+        AccountResponse result = accountService.deposit(1L, BigDecimal.valueOf(100.0), currentUser);
 
         assertThat(result).isNotNull();
         verify(accountRepository, times(1)).save(any(Account.class));
@@ -145,7 +146,7 @@ class AccountServiceTest {
 
     @Test
     void deposit_zeroAmount_throwsException() {
-        assertThatThrownBy(() -> accountService.deposit(1L, 0.0, currentUser))
+        assertThatThrownBy(() -> accountService.deposit(1L, BigDecimal.valueOf(0.0), currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Deposit amount must be greater than zero");
     }
@@ -155,7 +156,7 @@ class AccountServiceTest {
         account.setStatus(Account.AccountStatus.FROZEN);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        assertThatThrownBy(() -> accountService.deposit(1L, 100.0, currentUser))
+        assertThatThrownBy(() -> accountService.deposit(1L, BigDecimal.valueOf(100.0), currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Cannot deposit to a frozen account");
     }
@@ -165,17 +166,17 @@ class AccountServiceTest {
         account.setStatus(Account.AccountStatus.CLOSED);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        assertThatThrownBy(() -> accountService.deposit(1L, 100.0, currentUser))
+        assertThatThrownBy(() -> accountService.deposit(1L, BigDecimal.valueOf(100.0), currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Cannot deposit to a closed account");
     }
 
     @Test
     void deposit_exceedsMaxBalance_throwsException() {
-        account.setBalance(950000.0);
+        account.setBalance(BigDecimal.valueOf(950000.0));
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        assertThatThrownBy(() -> accountService.deposit(1L, 100000.0, currentUser))
+        assertThatThrownBy(() -> accountService.deposit(1L, BigDecimal.valueOf(100000.0), currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Deposit would exceed maximum balance limit of 1,000,000");
     }
@@ -185,7 +186,7 @@ class AccountServiceTest {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(accountRepository.save(any(Account.class))).thenReturn(account);
 
-        AccountResponse result = accountService.withdraw(1L, 100.0, currentUser);
+        AccountResponse result = accountService.withdraw(1L, BigDecimal.valueOf(100.0), currentUser);
 
         assertThat(result).isNotNull();
         verify(accountRepository, times(1)).save(any(Account.class));
@@ -193,7 +194,7 @@ class AccountServiceTest {
 
     @Test
     void withdraw_zeroAmount_throwsException() {
-        assertThatThrownBy(() -> accountService.withdraw(1L, 0.0, currentUser))
+        assertThatThrownBy(() -> accountService.withdraw(1L, BigDecimal.valueOf(0.0), currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("withdrawal amount must be greater than zero");
     }
@@ -203,17 +204,17 @@ class AccountServiceTest {
         account.setStatus(Account.AccountStatus.FROZEN);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        assertThatThrownBy(() -> accountService.withdraw(1L, 100.0, currentUser))
+        assertThatThrownBy(() -> accountService.withdraw(1L, BigDecimal.valueOf(100.0), currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Cannot withdraw from a frozen account");
     }
 
     @Test
     void withdraw_insufficientBalance_throwsException() {
-        account.setBalance(50.0);
+        account.setBalance(BigDecimal.valueOf(50.0));
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        assertThatThrownBy(() -> accountService.withdraw(1L, 100.0, currentUser))
+        assertThatThrownBy(() -> accountService.withdraw(1L, BigDecimal.valueOf(100.0), currentUser))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Insufficient balance");
     }

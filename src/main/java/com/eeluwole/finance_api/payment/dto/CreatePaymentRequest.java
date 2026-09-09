@@ -3,6 +3,7 @@ package com.eeluwole.finance_api.payment.dto;
 import com.eeluwole.finance_api.payment.Payment;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import java.math.BigDecimal;
 
 public class CreatePaymentRequest {
 
@@ -14,7 +15,7 @@ public class CreatePaymentRequest {
 
     @NotNull
     @Positive
-    private Double amount;
+    private BigDecimal amount;
 
     @NotNull
     private Payment.PaymentMethod method;
@@ -35,11 +36,11 @@ public class CreatePaymentRequest {
         this.policyId = policyId;
     }
 
-    public Double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(Double amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 

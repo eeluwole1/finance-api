@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -30,7 +31,8 @@ public class Account {
     @Enumerated(EnumType.STRING)
     private AccountType type;
 
-    private Double balance = 0.0;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal balance = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     private AccountStatus status = AccountStatus.ACTIVE;

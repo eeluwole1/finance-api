@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -61,14 +62,14 @@ class TransactionServiceTest {
         transaction.setId(1L);
         transaction.setClient(client);
         transaction.setType(Transaction.TransactionType.DEPOSIT);
-        transaction.setAmount(1000.0);
+        transaction.setAmount(BigDecimal.valueOf(1000.0));
         transaction.setDescription("Monthly deposit");
         transaction.setStatus(Transaction.TransactionStatus.PENDING);
 
         request = new CreateTransactionRequest();
         request.setClientId(1L);
         request.setType(Transaction.TransactionType.DEPOSIT);
-        request.setAmount(1000.0);
+        request.setAmount(BigDecimal.valueOf(1000.0));
         request.setDescription("Monthly deposit");
 
         currentUser = new User();
@@ -85,7 +86,7 @@ class TransactionServiceTest {
         List<TransactionResponse> result = transactionService.getAllTransactions(currentUser);
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getAmount()).isEqualTo(1000.0);
+        assertThat(result.get(0).getAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000.0));
     }
 
     @Test
@@ -95,7 +96,7 @@ class TransactionServiceTest {
         TransactionResponse result = transactionService.getTransactionById(1L, currentUser);
 
         assertThat(result.getId()).isEqualTo(1L);
-        assertThat(result.getAmount()).isEqualTo(1000.0);
+        assertThat(result.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000.0));
     }
 
     @Test
@@ -114,7 +115,7 @@ class TransactionServiceTest {
 
         TransactionResponse result = transactionService.createTransaction(request, currentUser);
 
-        assertThat(result.getAmount()).isEqualTo(1000.0);
+        assertThat(result.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000.0));
         verify(transactionRepository, times(1)).save(any(Transaction.class));
     }
 
@@ -136,7 +137,7 @@ class TransactionServiceTest {
         transferTransaction.setClient(client);
         transferTransaction.setToClient(toClient);
         transferTransaction.setType(Transaction.TransactionType.TRANSFER);
-        transferTransaction.setAmount(500.0);
+        transferTransaction.setAmount(BigDecimal.valueOf(500.0));
         transferTransaction.setDescription("Transfer to Jane");
         transferTransaction.setStatus(Transaction.TransactionStatus.PENDING);
 
@@ -144,7 +145,7 @@ class TransactionServiceTest {
         transferRequest.setClientId(1L);
         transferRequest.setToClientId(2L);
         transferRequest.setType(Transaction.TransactionType.TRANSFER);
-        transferRequest.setAmount(500.0);
+        transferRequest.setAmount(BigDecimal.valueOf(500.0));
         transferRequest.setDescription("Transfer to Jane");
 
         when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
@@ -153,7 +154,7 @@ class TransactionServiceTest {
 
         TransactionResponse result = transactionService.createTransaction(transferRequest, currentUser);
 
-        assertThat(result.getAmount()).isEqualTo(500.0);
+        assertThat(result.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(500.0));
         verify(transactionRepository, times(1)).save(any(Transaction.class));
     }
 
@@ -163,7 +164,7 @@ class TransactionServiceTest {
         transferRequest.setClientId(1L);
         transferRequest.setToClientId(99L);
         transferRequest.setType(Transaction.TransactionType.TRANSFER);
-        transferRequest.setAmount(500.0);
+        transferRequest.setAmount(BigDecimal.valueOf(500.0));
 
         when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
         when(clientRepository.findById(99L)).thenReturn(Optional.empty());

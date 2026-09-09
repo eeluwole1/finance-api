@@ -3,6 +3,7 @@ package com.eeluwole.finance_api.advanced.dto;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class CreateAdvancedRequest {
@@ -15,11 +16,11 @@ public class CreateAdvancedRequest {
 
     @NotNull
     @Positive
-    private Double loanAmount;
+    private BigDecimal loanAmount;
 
     @NotNull
     @PositiveOrZero
-    private Double interestRate;
+    private BigDecimal interestRate;
 
     @NotNull
     private LocalDate dueDate;
@@ -40,19 +41,19 @@ public class CreateAdvancedRequest {
         this.policyId = policyId;
     }
 
-    public Double getLoanAmount() {
+    public BigDecimal getLoanAmount() {
         return loanAmount;
     }
 
-    public void setLoanAmount(Double loanAmount) {
+    public void setLoanAmount(BigDecimal loanAmount) {
         this.loanAmount = loanAmount;
     }
 
-    public Double getInterestRate() {
+    public BigDecimal getInterestRate() {
         return interestRate;
     }
 
-    public void setInterestRate(Double interestRate) {
+    public void setInterestRate(BigDecimal interestRate) {
         this.interestRate = interestRate;
     }
 

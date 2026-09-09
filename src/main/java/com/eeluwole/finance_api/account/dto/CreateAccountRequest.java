@@ -4,6 +4,7 @@ import com.eeluwole.finance_api.account.Account;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import java.math.BigDecimal;
 
 public class CreateAccountRequest {
 
@@ -17,7 +18,7 @@ public class CreateAccountRequest {
     private Account.AccountType type;
 
     @PositiveOrZero
-    private Double balance;
+    private BigDecimal balance;
 
     public Long getClientId() {
         return clientId;
@@ -43,11 +44,11 @@ public class CreateAccountRequest {
         this.type = type;
     }
 
-    public Double getBalance() {
+    public BigDecimal getBalance() {
         return balance;
     }
 
-    public void setBalance(Double balance) {
+    public void setBalance(BigDecimal balance) {
         this.balance = balance;
     }
 }

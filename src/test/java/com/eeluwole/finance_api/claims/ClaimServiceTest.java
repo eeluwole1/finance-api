@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -59,8 +60,8 @@ class ClaimServiceTest {
         policy.setPolicyNumber("POL-001");
         policy.setClient(client);
         policy.setType(Policy.PolicyType.LIFE);
-        policy.setCoverageAmount(500000.0);
-        policy.setPremiumAmount(200.0);
+        policy.setCoverageAmount(BigDecimal.valueOf(500000.0));
+        policy.setPremiumAmount(BigDecimal.valueOf(200.0));
         policy.setStartDate(LocalDate.of(2024, 1, 1));
         policy.setEndDate(LocalDate.of(2025, 1, 1));
         policy.setStatus(Policy.PolicyStatus.ACTIVE);
@@ -70,7 +71,7 @@ class ClaimServiceTest {
         claim.setClient(client);
         claim.setPolicy(policy);
         claim.setType(Claim.ClaimType.LIFE);
-        claim.setAmount(50000.0);
+        claim.setAmount(BigDecimal.valueOf(50000.0));
         claim.setDescription("Life insurance claim");
         claim.setStatus(Claim.ClaimStatus.SUBMITTED);
 
@@ -78,7 +79,7 @@ class ClaimServiceTest {
         request.setClientId(1L);
         request.setPolicyId(1L);
         request.setType(Claim.ClaimType.LIFE);
-        request.setAmount(50000.0);
+        request.setAmount(BigDecimal.valueOf(50000.0));
         request.setDescription("Life insurance claim");
 
         currentUser = new User();
@@ -95,7 +96,7 @@ class ClaimServiceTest {
         List<ClaimResponse> result = claimService.getAllClaims(currentUser);
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getAmount()).isEqualTo(50000.0);
+        assertThat(result.get(0).getAmount()).isEqualByComparingTo(BigDecimal.valueOf(50000.0));
     }
 
     @Test
@@ -105,7 +106,7 @@ class ClaimServiceTest {
         ClaimResponse result = claimService.getClaimById(1L, currentUser);
 
         assertThat(result.getId()).isEqualTo(1L);
-        assertThat(result.getAmount()).isEqualTo(50000.0);
+        assertThat(result.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(50000.0));
     }
 
     @Test
@@ -125,7 +126,7 @@ class ClaimServiceTest {
 
         ClaimResponse result = claimService.createClaim(request, currentUser);
 
-        assertThat(result.getAmount()).isEqualTo(50000.0);
+        assertThat(result.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(50000.0));
         verify(claimRepository, times(1)).save(any(Claim.class));
     }
 

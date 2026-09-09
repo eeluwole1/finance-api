@@ -1,6 +1,7 @@
 package com.eeluwole.finance_api.claims.dto;
 
 import com.eeluwole.finance_api.claims.Claim;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class ClaimResponse {
@@ -11,7 +12,7 @@ public class ClaimResponse {
     private Long policyId;
     private String policyNumber;
     private Claim.ClaimType type;
-    private Double amount;
+    private BigDecimal amount;
     private String description;
     private Claim.ClaimStatus status;
     private LocalDateTime createdAt;
@@ -64,11 +65,11 @@ public class ClaimResponse {
         this.type = type;
     }
 
-    public Double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(Double amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 

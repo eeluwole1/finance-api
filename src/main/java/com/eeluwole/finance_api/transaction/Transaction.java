@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -32,7 +33,8 @@ public class Transaction {
     @Enumerated(EnumType.STRING)
     private TransactionType type;
 
-    private Double amount;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal amount;
 
     private String description;
 

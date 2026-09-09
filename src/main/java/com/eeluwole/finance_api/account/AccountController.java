@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -57,7 +58,7 @@ public class AccountController {
     @PatchMapping("/{id}/deposit")
     public ResponseEntity<AccountResponse> deposit(
             @PathVariable Long id,
-            @RequestParam Double amount,
+            @RequestParam BigDecimal amount,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(accountService.deposit(id, amount, currentUser));
     }
@@ -66,7 +67,7 @@ public class AccountController {
     @PatchMapping("/{id}/withdraw")
     public ResponseEntity<AccountResponse> withdraw(
             @PathVariable Long id,
-            @RequestParam Double amount,
+            @RequestParam BigDecimal amount,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(accountService.withdraw(id, amount, currentUser));
     }

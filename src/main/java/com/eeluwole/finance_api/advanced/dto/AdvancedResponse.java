@@ -1,6 +1,7 @@
 package com.eeluwole.finance_api.advanced.dto;
 
 import com.eeluwole.finance_api.advanced.Advanced;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -11,8 +12,8 @@ public class AdvancedResponse {
     private String clientName;
     private Long policyId;
     private String policyNumber;
-    private Double loanAmount;
-    private Double interestRate;
+    private BigDecimal loanAmount;
+    private BigDecimal interestRate;
     private LocalDate dueDate;
     private Advanced.LoanStatus status;
     private LocalDateTime createdAt;
@@ -57,19 +58,19 @@ public class AdvancedResponse {
         this.policyNumber = policyNumber;
     }
 
-    public Double getLoanAmount() {
+    public BigDecimal getLoanAmount() {
         return loanAmount;
     }
 
-    public void setLoanAmount(Double loanAmount) {
+    public void setLoanAmount(BigDecimal loanAmount) {
         this.loanAmount = loanAmount;
     }
 
-    public Double getInterestRate() {
+    public BigDecimal getInterestRate() {
         return interestRate;
     }
 
-    public void setInterestRate(Double interestRate) {
+    public void setInterestRate(BigDecimal interestRate) {
         this.interestRate = interestRate;
     }
 

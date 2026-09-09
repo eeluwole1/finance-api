@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -59,8 +60,8 @@ class PaymentServiceTest {
         policy.setPolicyNumber("POL-001");
         policy.setClient(client);
         policy.setType(Policy.PolicyType.LIFE);
-        policy.setCoverageAmount(500000.0);
-        policy.setPremiumAmount(200.0);
+        policy.setCoverageAmount(BigDecimal.valueOf(500000.0));
+        policy.setPremiumAmount(BigDecimal.valueOf(200.0));
         policy.setStartDate(LocalDate.of(2024, 1, 1));
         policy.setEndDate(LocalDate.of(2025, 1, 1));
         policy.setStatus(Policy.PolicyStatus.ACTIVE);
@@ -69,14 +70,14 @@ class PaymentServiceTest {
         payment.setId(1L);
         payment.setClient(client);
         payment.setPolicy(policy);
-        payment.setAmount(200.0);
+        payment.setAmount(BigDecimal.valueOf(200.0));
         payment.setMethod(Payment.PaymentMethod.BANK_TRANSFER);
         payment.setStatus(Payment.PaymentStatus.PENDING);
 
         request = new CreatePaymentRequest();
         request.setClientId(1L);
         request.setPolicyId(1L);
-        request.setAmount(200.0);
+        request.setAmount(BigDecimal.valueOf(200.0));
         request.setMethod(Payment.PaymentMethod.BANK_TRANSFER);
 
         currentUser = new User();
@@ -93,7 +94,7 @@ class PaymentServiceTest {
         List<PaymentResponse> result = paymentService.getAllPayments(currentUser);
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getAmount()).isEqualTo(200.0);
+        assertThat(result.get(0).getAmount()).isEqualByComparingTo(BigDecimal.valueOf(200.0));
     }
 
     @Test
@@ -103,7 +104,7 @@ class PaymentServiceTest {
         PaymentResponse result = paymentService.getPaymentById(1L, currentUser);
 
         assertThat(result.getId()).isEqualTo(1L);
-        assertThat(result.getAmount()).isEqualTo(200.0);
+        assertThat(result.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(200.0));
     }
 
     @Test
@@ -123,7 +124,7 @@ class PaymentServiceTest {
 
         PaymentResponse result = paymentService.createPayment(request, currentUser);
 
-        assertThat(result.getAmount()).isEqualTo(200.0);
+        assertThat(result.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(200.0));
         verify(paymentRepository, times(1)).save(any(Payment.class));
     }
 

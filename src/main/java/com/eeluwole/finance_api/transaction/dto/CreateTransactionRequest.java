@@ -3,6 +3,7 @@ package com.eeluwole.finance_api.transaction.dto;
 import com.eeluwole.finance_api.transaction.Transaction;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import java.math.BigDecimal;
 
 public class CreateTransactionRequest {
 
@@ -16,7 +17,7 @@ public class CreateTransactionRequest {
 
     @NotNull
     @Positive
-    private Double amount;
+    private BigDecimal amount;
 
     private String description;
 
@@ -44,11 +45,11 @@ public class CreateTransactionRequest {
         this.type = type;
     }
 
-    public Double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(Double amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 

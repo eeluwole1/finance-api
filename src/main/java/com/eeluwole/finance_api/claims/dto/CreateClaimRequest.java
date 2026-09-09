@@ -4,6 +4,7 @@ import com.eeluwole.finance_api.claims.Claim;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import java.math.BigDecimal;
 
 public class CreateClaimRequest {
 
@@ -18,7 +19,7 @@ public class CreateClaimRequest {
 
     @NotNull
     @Positive
-    private Double amount;
+    private BigDecimal amount;
 
     @NotBlank
     private String description;
@@ -47,11 +48,11 @@ public class CreateClaimRequest {
         this.type = type;
     }
 
-    public Double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(Double amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 

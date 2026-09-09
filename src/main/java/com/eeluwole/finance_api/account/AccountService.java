@@ -8,6 +8,7 @@ import com.eeluwole.finance_api.account.dto.AccountResponse;
 import com.eeluwole.finance_api.common.AppConstants;
 import com.eeluwole.finance_api.common.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -58,13 +59,13 @@ public class AccountService {
         account.setClient(client);
         account.setAccountNumber(request.getAccountNumber());
         account.setType(request.getType());
-        account.setBalance(request.getBalance() != null ? request.getBalance() : 0.0);
+        account.setBalance(request.getBalance() != null ? request.getBalance() : BigDecimal.ZERO);
 
         return toResponse(accountRepository.save(account));
     }
 
-    public AccountResponse deposit(Long id, Double amount, User currentUser) {
-        if (amount == null || amount <= 0) {
+    public AccountResponse deposit(Long id, BigDecimal amount, User currentUser) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Deposit amount must be greater than zero");
         }
 
@@ -79,17 +80,17 @@ public class AccountService {
             throw new RuntimeException("Cannot deposit to a closed account");
         }
 
-        if (account.getBalance() + amount > AppConstants.MAX_ACCOUNT_BALANCE) {
+        if (account.getBalance().add(amount).compareTo(AppConstants.MAX_ACCOUNT_BALANCE) > 0) {
             throw new RuntimeException(String.format(java.util.Locale.US,
                     "Deposit would exceed maximum balance limit of %,.0f", AppConstants.MAX_ACCOUNT_BALANCE));
         }
 
-        account.setBalance(account.getBalance() + amount);
+        account.setBalance(account.getBalance().add(amount));
         return toResponse(accountRepository.save(account));
     }
 
-    public AccountResponse withdraw(Long id, Double amount, User currentUser) {
-        if (amount == null || amount <= 0) {
+    public AccountResponse withdraw(Long id, BigDecimal amount, User currentUser) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("withdrawal amount must be greater than zero");
         }
 
@@ -105,11 +106,11 @@ public class AccountService {
             throw new RuntimeException("Cannot withdraw from a closed account");
         }
 
-        if (account.getBalance() < amount) {
+        if (account.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient balance");
         }
 
-        account.setBalance(account.getBalance() - amount);
+        account.setBalance(account.getBalance().subtract(amount));
         return toResponse(accountRepository.save(account));
     }
 

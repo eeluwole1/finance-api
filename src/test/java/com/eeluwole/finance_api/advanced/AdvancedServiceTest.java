@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -59,8 +60,8 @@ class AdvancedServiceTest {
         policy.setPolicyNumber("POL-001");
         policy.setClient(client);
         policy.setType(Policy.PolicyType.LIFE);
-        policy.setCoverageAmount(500000.0);
-        policy.setPremiumAmount(200.0);
+        policy.setCoverageAmount(BigDecimal.valueOf(500000.0));
+        policy.setPremiumAmount(BigDecimal.valueOf(200.0));
         policy.setStartDate(LocalDate.of(2024, 1, 1));
         policy.setEndDate(LocalDate.of(2025, 1, 1));
         policy.setStatus(Policy.PolicyStatus.ACTIVE);
@@ -69,16 +70,16 @@ class AdvancedServiceTest {
         loan.setId(1L);
         loan.setClient(client);
         loan.setPolicy(policy);
-        loan.setLoanAmount(10000.0);
-        loan.setInterestRate(5.0);
+        loan.setLoanAmount(BigDecimal.valueOf(10000.0));
+        loan.setInterestRate(BigDecimal.valueOf(5.0));
         loan.setDueDate(LocalDate.of(2025, 6, 1));
         loan.setStatus(Advanced.LoanStatus.ACTIVE);
 
         request = new CreateAdvancedRequest();
         request.setClientId(1L);
         request.setPolicyId(1L);
-        request.setLoanAmount(10000.0);
-        request.setInterestRate(5.0);
+        request.setLoanAmount(BigDecimal.valueOf(10000.0));
+        request.setInterestRate(BigDecimal.valueOf(5.0));
         request.setDueDate(LocalDate.of(2025, 6, 1));
 
         currentUser = new User();
@@ -95,7 +96,7 @@ class AdvancedServiceTest {
         List<AdvancedResponse> result = advancedService.getAllLoans(currentUser);
 
         assertThat(result).hasSize(1);
-        assertThat(result.getFirst().getLoanAmount()).isEqualTo(10000.0);
+        assertThat(result.getFirst().getLoanAmount()).isEqualByComparingTo(BigDecimal.valueOf(10000.0));
     }
 
     @Test
@@ -105,7 +106,7 @@ class AdvancedServiceTest {
         AdvancedResponse result = advancedService.getLoanById(1L, currentUser);
 
         assertThat(result.getId()).isEqualTo(1L);
-        assertThat(result.getLoanAmount()).isEqualTo(10000.0);
+        assertThat(result.getLoanAmount()).isEqualByComparingTo(BigDecimal.valueOf(10000.0));
     }
 
     @Test
@@ -125,7 +126,7 @@ class AdvancedServiceTest {
 
         AdvancedResponse result = advancedService.createLoan(request, currentUser);
 
-        assertThat(result.getLoanAmount()).isEqualTo(10000.0);
+        assertThat(result.getLoanAmount()).isEqualByComparingTo(BigDecimal.valueOf(10000.0));
         verify(advancedRepository, times(1)).save(any(Advanced.class));
     }
 

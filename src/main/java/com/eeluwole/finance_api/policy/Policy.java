@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -27,8 +28,11 @@ public class Policy {
     @Enumerated(EnumType.STRING)
     private PolicyType type;
 
-    private Double coverageAmount;
-    private Double premiumAmount;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal coverageAmount;
+
+    @Column(precision = 19, scale = 2)
+    private BigDecimal premiumAmount;
     private LocalDate startDate;
     private LocalDate endDate;
 

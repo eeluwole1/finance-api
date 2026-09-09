@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -53,8 +54,8 @@ class PolicyServiceTest {
         policy.setPolicyNumber("POL-001");
         policy.setClient(client);
         policy.setType(Policy.PolicyType.LIFE);
-        policy.setCoverageAmount(500000.0);
-        policy.setPremiumAmount(200.0);
+        policy.setCoverageAmount(BigDecimal.valueOf(500000.0));
+        policy.setPremiumAmount(BigDecimal.valueOf(200.0));
         policy.setStartDate(LocalDate.of(2024, 1, 1));
         policy.setEndDate(LocalDate.of(2025, 1, 1));
         policy.setStatus(Policy.PolicyStatus.ACTIVE);
@@ -63,8 +64,8 @@ class PolicyServiceTest {
         request.setClientId(1L);
         request.setPolicyNumber("POL-001");
         request.setType(Policy.PolicyType.LIFE);
-        request.setCoverageAmount(500000.0);
-        request.setPremiumAmount(200.0);
+        request.setCoverageAmount(BigDecimal.valueOf(500000.0));
+        request.setPremiumAmount(BigDecimal.valueOf(200.0));
         request.setStartDate(LocalDate.of(2024, 1, 1));
         request.setEndDate(LocalDate.of(2025, 1, 1));
 

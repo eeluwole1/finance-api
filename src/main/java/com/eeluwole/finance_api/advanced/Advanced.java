@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -30,8 +31,11 @@ public class Advanced {
     @JoinColumn(name = "policy_id", nullable = false)
     private Policy policy;
 
-    private Double loanAmount;
-    private Double interestRate;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal loanAmount;
+
+    @Column(precision = 19, scale = 2)
+    private BigDecimal interestRate;
     private LocalDate dueDate;
 
     @Enumerated(EnumType.STRING)

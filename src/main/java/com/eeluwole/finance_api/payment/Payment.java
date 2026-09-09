@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -29,7 +30,8 @@ public class Payment {
     @JoinColumn(name = "policy_id", nullable = false)
     private Policy policy;
 
-    private Double amount;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
     private PaymentMethod method;

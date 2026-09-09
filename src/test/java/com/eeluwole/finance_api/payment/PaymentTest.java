@@ -1,12 +1,15 @@
 package com.eeluwole.finance_api.payment;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import nl.jqno.equalsverifier.Warning;
 import org.junit.jupiter.api.Test;
 
 class PaymentTest {
 
     @Test
     void equalsVerifier() throws Exception {
-        EqualsVerifier.forClass(Payment.class).verify();
+        // BigDecimal.equals() is scale-sensitive (0 != 0.00) — we don't care about
+        // scale differences for equality, only value, so this warning is expected.
+        EqualsVerifier.forClass(Payment.class).suppress(Warning.BIGDECIMAL_EQUALITY).verify();
     }
 }

@@ -1,6 +1,7 @@
 package com.eeluwole.finance_api.account.dto;
 
 import com.eeluwole.finance_api.account.Account;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class AccountResponse {
@@ -10,7 +11,7 @@ public class AccountResponse {
     private Long clientId;
     private String clientName;
     private Account.AccountType type;
-    private Double balance;
+    private BigDecimal balance;
     private Account.AccountStatus status;
     private LocalDateTime createdAt;
 
@@ -54,11 +55,11 @@ public class AccountResponse {
         this.type = type;
     }
 
-    public Double getBalance() {
+    public BigDecimal getBalance() {
         return balance;
     }
 
-    public void setBalance(Double balance) {
+    public void setBalance(BigDecimal balance) {
         this.balance = balance;
     }
 

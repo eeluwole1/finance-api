@@ -1,6 +1,7 @@
 package com.eeluwole.finance_api.transaction.dto;
 
 import com.eeluwole.finance_api.transaction.Transaction;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class TransactionResponse {
@@ -11,7 +12,7 @@ public class TransactionResponse {
     private Long toClientId;
     private String toClientName;
     private Transaction.TransactionType type;
-    private Double amount;
+    private BigDecimal amount;
     private String description;
     private Transaction.TransactionStatus status;
     private LocalDateTime createdAt;
@@ -64,11 +65,11 @@ public class TransactionResponse {
         this.type = type;
     }
 
-    public Double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(Double amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 
